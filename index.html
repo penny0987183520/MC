@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的 3D Minecraft 終極宇宙 (Minecraft Web 3D Complete)</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Import map for Three.js and PointerLockControls -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="game-container"></div>
+
+  <!-- 準心 (Crosshair) -->
+  <div id="crosshair">+</div>
+
+  <!-- 開始/暫停 提示遮罩 -->
+  <div id="overlay">
+    <div class="modal">
+      <h1>⛏️ 我的 3D Minecraft 終極大滿貫</h1>
+      <p class="subtitle">存檔功能 + 殭屍戰鬥 + 2D合成背包 + TNT爆炸 + 音效小羊！</p>
+      
+      <div class="instructions">
+        <h3>🎮 全功能操作指南：</h3>
+        <ul>
+          <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>：移動方向 | <kbd>Space</kbd>：跳躍</li>
+          <li><kbd>滑鼠左鍵</kbd>：挖掘方塊 / 揮劍攻擊殭屍</li>
+          <li><kbd>滑鼠右鍵</kbd>：放置方塊</li>
+          <li><kbd>E</kbd>：開啟 / 關閉背包與合成表 (Crafting)</li>
+          <li><kbd>T</kbd>：快速切換日夜時間 (太陽升降)</li>
+          <li><kbd>1</kbd> - <kbd>9</kbd> / <kbd>0</kbd> 或 <kbd>滾輪</kbd>：選擇快捷欄方塊</li>
+          <li><kbd>ESC</kbd>：釋放滑鼠視角 / 顯示系統選單</li>
+        </ul>
+      </div>
+
+      <div class="save-controls">
+        <button id="save-world-btn" class="secondary-btn">💾 儲存世界存檔</button>
+        <button id="load-world-btn" class="secondary-btn">📂 載入已存地圖</button>
+      </div>
+
+      <button id="start-btn">🚀 進入世界開始冒險！</button>
+    </div>
+  </div>
+
+  <!-- 背包與合成彈窗 Inventory & Crafting Modal -->
+  <div id="inventory-modal" class="hidden">
+    <div class="inv-content">
+      <div class="inv-header">
+        <h2>🎒 玩家背包與物品合成表</h2>
+        <span id="close-inv-btn">✖</span>
+      </div>
+      <div class="crafting-section">
+        <h3>🛠️ 快速合成 (Crafting Grid)</h3>
+        <div class="crafting-row">
+          <div class="craft-slot" data-slot="c1"></div>
+          <div class="craft-slot" data-slot="c2"></div>
+          <span class="arrow">➔</span>
+          <div class="craft-slot result" id="craft-result"></div>
+        </div>
+        <p class="craft-hint">提示：放入 [原木] 可合成 [木板/磚塊]，放入 [泥土] 可合成 [石頭]！</p>
+      </div>
+      <div class="inventory-section">
+        <h3>📦 物品庫 (點擊替換快捷欄)</h3>
+        <div id="inventory-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快捷欄 (Hotbar) -->
+  <div id="hotbar-container">
+    <div id="heart-container">
+      <!-- 玩家血量心形 -->
+      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+    </div>
+    <div id="block-name-display">草地方塊</div>
+    <div id="hotbar">
+      <!-- 快捷欄項目將由 JS 自動生成 -->
+    </div>
+  </div>
+
+  <!-- 狀態資訊 HUD -->
+  <div id="hud">
+    <div id="info-panel">
+      <div>位置: <span id="pos-display">X: 0, Y: 0, Z: 0</span></div>
+      <div>時間: <span id="time-display">☀️ 白天 (12:00)</span></div>
+      <div>選中方塊: <span id="selected-block-info">草地 (Grass)</span></div>
+      <div>按 <kbd>E</kbd> 開背包 | 按 <kbd>T</kbd> 切換日夜</div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
