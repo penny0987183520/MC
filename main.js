@@ -1384,7 +1384,8 @@ const zombieList = [new VoxelZombie(-10, -10), new VoxelZombie(12, 12)];
 const armadilloList = [new VoxelArmadillo(2, -4), new VoxelArmadillo(-5, 6)];
 const wolfList = [new VoxelWolf(3, 3), new VoxelWolf(-3, -3)];
 
-camera.position.set(0, 7, 10);
+const spawnGroundY = getGroundHeight(0, 0);
+camera.position.set(0, spawnGroundY + 1.6, 0);
 
 // 準心高亮
 const selectionGeo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
@@ -1461,7 +1462,8 @@ function hurtPlayer() {
   if (playerHealth <= 0) {
     alert('💀 你已被殭屍擊敗！世界已重置重生。');
     playerHealth = 10;
-    camera.position.set(0, 7, 10);
+    const respawnY = getGroundHeight(0, 0) + 1.6;
+    camera.position.set(0, respawnY, 0);
     updateHealthBar();
   }
 }
@@ -1909,7 +1911,7 @@ function animate() {
     if (checkPlayerCollision(camera.position)) camera.position.y = oldPos.y;
 
     const playerFeetY = camera.position.y - 1.6;
-    const targetGroundY = getGroundHeightAtFeet(camera.position.x, playerFeetY, camera.position.z) + 0.6;
+    const targetGroundY = getGroundHeightAtFeet(camera.position.x, playerFeetY, camera.position.z) + 1.6;
     if (camera.position.y <= targetGroundY) {
       if (!moveUp) {
         velocity.y = 0;
@@ -1941,7 +1943,7 @@ function animate() {
     // Y 軸重力與腳底地面物理 (需求 4：絕不判定頭頂樹葉為地面，切實防飛樹頂)
     camera.position.y += velocity.y * delta;
     const playerFeetY = camera.position.y - 1.6;
-    const targetGroundY = getGroundHeightAtFeet(camera.position.x, playerFeetY, camera.position.z) + 0.6;
+    const targetGroundY = getGroundHeightAtFeet(camera.position.x, playerFeetY, camera.position.z) + 1.6;
 
     if (camera.position.y <= targetGroundY) {
       velocity.y = 0;
@@ -1951,7 +1953,8 @@ function animate() {
 
     if (camera.position.y < -10) {
       velocity.y = 0;
-      camera.position.set(0, 7, 10);
+      const respawnY = getGroundHeight(0, 0) + 1.6;
+      camera.position.set(0, respawnY, 0);
     }
   }
 
