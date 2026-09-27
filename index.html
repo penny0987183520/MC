@@ -25,16 +25,19 @@
   <!-- 開始/暫停 提示遮罩 -->
   <div id="overlay">
     <div class="modal">
-      <h1>⛏️ 我的 3D Minecraft 終極大滿貫</h1>
-      <p class="subtitle">存檔功能 + 殭屍戰鬥 + 2D合成背包 + TNT爆炸 + 音效小羊！</p>
+      <h1>🌸 我的 3D Minecraft 1.20.6 終極正版宇宙</h1>
+      <p class="subtitle">1.20.6 犰狳(Armadillo) + 櫻花木(Cherry Wood) + 狼鎧甲(Wolf Armor) + 自動合成器(Crafter) + 考古刷(Suspicious Sand)！</p>
       
       <div class="instructions">
-        <h3>🎮 全功能操作指南：</h3>
+        <h3>🎮 全功能 1.20.6 操作指南：</h3>
         <ul>
-          <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>：移動方向 | <kbd>Space</kbd>：跳躍</li>
-          <li><kbd>滑鼠左鍵</kbd>：挖掘方塊 / 揮劍攻擊殭屍</li>
-          <li><kbd>滑鼠右鍵</kbd>：放置方塊</li>
-          <li><kbd>E</kbd>：開啟 / 關閉背包與合成表 (Crafting)</li>
+          <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>：移動方向 | <kbd>Space</kbd>：跳躍 (限高1格) / 飛行上升</li>
+          <li><kbd>Backspace</kbd> (刪除鍵)：切換 [旁觀模式] / [生存模式]</li>
+          <li><kbd>Shift</kbd>：切換 [創造模式] / [生存模式]</li>
+          <li><kbd>Ctrl</kbd> / <kbd>C</kbd>：飛行下降 / 疾跑 Sprint</li>
+          <li><kbd>滑鼠左鍵</kbd>：挖掘方塊 / 攻擊殭屍 / 拿骨頭餵狼</li>
+          <li><kbd>滑鼠右鍵</kbd>：放置方塊 / 使用考古刷工具</li>
+          <li><kbd>E</kbd>：開啟 1.20.6 背包與 Crafter 合成表</li>
           <li><kbd>T</kbd>：快速切換日夜時間 (太陽升降)</li>
           <li><kbd>1</kbd> - <kbd>9</kbd> / <kbd>0</kbd> 或 <kbd>滾輪</kbd>：選擇快捷欄方塊</li>
           <li><kbd>ESC</kbd>：釋放滑鼠視角 / 顯示系統選單</li>
@@ -42,11 +45,11 @@
       </div>
 
       <div class="save-controls">
-        <button id="save-world-btn" class="secondary-btn">💾 儲存世界存檔</button>
-        <button id="load-world-btn" class="secondary-btn">📂 載入已存地圖</button>
+        <button id="save-world-btn" class="secondary-btn">💾 儲存 1.20.6 地圖存檔</button>
+        <button id="load-world-btn" class="secondary-btn">📂 載入世界存檔</button>
       </div>
 
-      <button id="start-btn">🚀 進入世界開始冒險！</button>
+      <button id="start-btn">🚀 進入 1.20.6 正版世界開始冒險！</button>
     </div>
   </div>
 
@@ -54,21 +57,21 @@
   <div id="inventory-modal" class="hidden">
     <div class="inv-content">
       <div class="inv-header">
-        <h2>🎒 玩家背包與物品合成表</h2>
+        <h2>🎒 1.20.6 玩家背包與 Crafter 合成表</h2>
         <span id="close-inv-btn">✖</span>
       </div>
       <div class="crafting-section">
-        <h3>🛠️ 快速合成 (Crafting Grid)</h3>
+        <h3>🛠️ 1.20.6 快速合成 grid</h3>
         <div class="crafting-row">
           <div class="craft-slot" data-slot="c1"></div>
           <div class="craft-slot" data-slot="c2"></div>
           <span class="arrow">➔</span>
           <div class="craft-slot result" id="craft-result"></div>
         </div>
-        <p class="craft-hint">提示：放入 [原木] 可合成 [木板/磚塊]，放入 [泥土] 可合成 [石頭]！</p>
+        <p class="craft-hint">提示：放入 [櫻花原木] 合成 [櫻花木板]，[竹子] 合成 [竹木馬賽克]，[骨頭] 合成 [狼鎧甲]！</p>
       </div>
       <div class="inventory-section">
-        <h3>📦 物品庫 (點擊替換快捷欄)</h3>
+        <h3>📦 1.20.6 方塊與工具庫 (點擊替換快捷欄)</h3>
         <div id="inventory-grid"></div>
       </div>
     </div>
@@ -76,10 +79,22 @@
 
   <!-- 快捷欄 (Hotbar) -->
   <div id="hotbar-container">
-    <div id="heart-container">
-      <!-- 玩家血量心形 -->
-      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
-      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+    <div id="stats-container">
+      <div id="heart-container">
+        <!-- 玩家血量心形 -->
+        <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+        <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+      </div>
+      <div id="hunger-container">
+        <!-- 飢飽度 🍗 -->
+        <span class="hunger">🍗</span><span class="hunger">🍗</span><span class="hunger">🍗</span><span class="hunger">🍗</span><span class="hunger">🍗</span>
+        <span class="hunger">🍗</span><span class="hunger">🍗</span><span class="hunger">🍗</span><span class="hunger">🍗</span><span class="hunger">🍗</span>
+      </div>
+    </div>
+    <!-- 1.20.6 XP 經驗值條 -->
+    <div id="xp-container">
+      <div id="xp-bar"><div id="xp-fill"></div></div>
+      <span id="xp-level">LV 1.20.6</span>
     </div>
     <div id="block-name-display">草地方塊</div>
     <div id="hotbar">
@@ -90,10 +105,12 @@
   <!-- 狀態資訊 HUD -->
   <div id="hud">
     <div id="info-panel">
+      <div>版本: <span style="color: #f6ad55; font-weight: bold;">Minecraft 1.20.6</span></div>
+      <div>模式: <span id="mode-display" class="mode-badge survival">🟢 生存模式 (Survival)</span></div>
       <div>位置: <span id="pos-display">X: 0, Y: 0, Z: 0</span></div>
       <div>時間: <span id="time-display">☀️ 白天 (12:00)</span></div>
       <div>選中方塊: <span id="selected-block-info">草地 (Grass)</span></div>
-      <div>按 <kbd>E</kbd> 開背包 | 按 <kbd>T</kbd> 切換日夜</div>
+      <div>按 <kbd>Backspace</kbd> 旁觀 | 按 <kbd>Shift</kbd> 創造 | 按 <kbd>E</kbd> 背包</div>
     </div>
   </div>
 
