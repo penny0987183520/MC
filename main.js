@@ -227,18 +227,7 @@ const BLOCKS = {
   WOLF_ARMOR: { id: 25, name: '🛡️ 1.20.6 狼鎧甲 (Wolf Armor)', color: 0x8b5e3c, requiredHits: 1, isTool: true }
 };
 
-let HOTBAR_BLOCKS = [
-  BLOCKS.OAK_LOG,
-  BLOCKS.SPRUCE_LOG,
-  BLOCKS.BIRCH_LOG,
-  BLOCKS.JUNGLE_LOG,
-  BLOCKS.ACACIA_LOG,
-  BLOCKS.DARK_OAK_LOG,
-  BLOCKS.CHERRY_LOG,
-  BLOCKS.CHEST,
-  BLOCKS.SUSPICIOUS_SAND,
-  BLOCKS.DIAMOND
-];
+let HOTBAR_BLOCKS = [null, null, null, null, null, null, null, null, null, null];
 
 let selectedBlockIndex = 0;
 
@@ -764,6 +753,26 @@ function spawnDroppedItem(pos, typeKey) {
   });
 }
 
+function addItemToHotbar(typeKey) {
+  const blockObj = BLOCKS[typeKey];
+  if (!blockObj) return;
+
+  let existingIndex = HOTBAR_BLOCKS.findIndex(b => b && b.id === blockObj.id);
+  if (existingIndex !== -1) {
+    selectHotbarSlot(existingIndex);
+    return;
+  }
+
+  let emptyIndex = HOTBAR_BLOCKS.findIndex(b => b === null);
+  if (emptyIndex !== -1) {
+    HOTBAR_BLOCKS[emptyIndex] = blockObj;
+    selectHotbarSlot(emptyIndex);
+  } else {
+    HOTBAR_BLOCKS[selectedBlockIndex] = blockObj;
+    selectHotbarSlot(selectedBlockIndex);
+  }
+}
+
 function updateDroppedItems(delta, playerPos) {
   for (let i = droppedItems.length - 1; i >= 0; i--) {
     const item = droppedItems[i];
@@ -777,6 +786,7 @@ function updateDroppedItems(delta, playerPos) {
     const dist = playerPos.distanceTo(item.mesh.position);
     if (dist < 1.6) {
       sounds.playItemPickup();
+      addItemToHotbar(item.typeKey);
       scene.remove(item.mesh);
       droppedItems.splice(i, 1);
     }
@@ -989,8 +999,21 @@ class VoxelSheep {
     this.group.position.set(x, groundY, z);
     scene.add(this.group);
 
+    this.health = 5;
     this.targetDir = new THREE.Vector3();
     this.changeDirectionTimer = 0;
+  }
+
+  hit() {
+    this.health--;
+    sounds.playHitZombie();
+    spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.8, 0)), 0xf5f5f5);
+    if (this.health <= 0) {
+      scene.remove(this.group);
+      spawnDroppedItem(this.group.position, 'OAK_LOG');
+      return true;
+    }
+    return false;
   }
 
   update(delta, time) {
@@ -1074,7 +1097,7 @@ class VoxelZombie {
     const groundY = getGroundHeight(x, z);
     this.group.position.set(x, groundY, z);
     scene.add(this.group);
-    this.health = 3;
+    this.health = 5;
     this.attackCooldown = 0;
   }
 
@@ -1084,6 +1107,7 @@ class VoxelZombie {
     spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 0x48793b);
     if (this.health <= 0) {
       scene.remove(this.group);
+      spawnDroppedItem(this.group.position, 'BONE_ITEM');
       return true;
     }
     return false;
@@ -1162,9 +1186,22 @@ class VoxelArmadillo {
     this.group.position.set(x, groundY, z);
     scene.add(this.group);
 
+    this.health = 5;
     this.isRolledUp = false;
     this.changeDirTimer = 0;
     this.targetDir = new THREE.Vector3();
+  }
+
+  hit() {
+    this.health--;
+    sounds.playHitZombie();
+    spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.4, 0)), 0x9c6644);
+    if (this.health <= 0) {
+      scene.remove(this.group);
+      spawnDroppedItem(this.group.position, 'WOLF_ARMOR');
+      return true;
+    }
+    return false;
   }
 
   update(delta, time, playerPos) {
@@ -1252,8 +1289,21 @@ class VoxelWolf {
     this.group.position.set(x, groundY, z);
     scene.add(this.group);
 
+    this.health = 5;
     this.isTamed = false;
     this.attackCooldown = 0;
+  }
+
+  hit() {
+    this.health--;
+    sounds.playHitZombie();
+    spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.6, 0)), 0xd3d3d3);
+    if (this.health <= 0) {
+      scene.remove(this.group);
+      spawnDroppedItem(this.group.position, 'BONE_ITEM');
+      return true;
+    }
+    return false;
   }
 
   tame() {
@@ -1310,9 +1360,9 @@ class VoxelWolf {
   }
 }
 
-// 48x48 擴大 1.20.6 世界地圖 (含櫻花樹林區與可疑沙子)
+// 240x240 (5倍擴大) 1.20.6 世界地圖 (含櫻花樹林區與可疑沙子)
 function generateInitialWorld() {
-  const WORLD_SIZE = 48;
+  const WORLD_SIZE = 240;
   const HALF_SIZE = WORLD_SIZE / 2;
 
   for (let x = -HALF_SIZE; x < HALF_SIZE; x++) {
@@ -1379,10 +1429,36 @@ function generateCherryTree(trX, trY, trZ) {
 
 generateInitialWorld();
 
-const sheepList = [new VoxelSheep(4, 4), new VoxelSheep(-6, -6), new VoxelSheep(10, -8)];
-const zombieList = [new VoxelZombie(-10, -10), new VoxelZombie(12, 12)];
-const armadilloList = [new VoxelArmadillo(2, -4), new VoxelArmadillo(-5, 6)];
-const wolfList = [new VoxelWolf(3, 3), new VoxelWolf(-3, -3)];
+const sheepList = [];
+const zombieList = [];
+const armadilloList = [];
+const wolfList = [];
+
+function spawnInitialMobs() {
+  for (let i = 0; i < 30; i++) {
+    const rx = (Math.random() - 0.5) * 200;
+    const rz = (Math.random() - 0.5) * 200;
+    sheepList.push(new VoxelSheep(rx, rz));
+  }
+  for (let i = 0; i < 25; i++) {
+    const rx = (Math.random() - 0.5) * 200;
+    const rz = (Math.random() - 0.5) * 200;
+    if (Math.abs(rx) > 12 || Math.abs(rz) > 12) {
+      zombieList.push(new VoxelZombie(rx, rz));
+    }
+  }
+  for (let i = 0; i < 20; i++) {
+    const rx = (Math.random() - 0.5) * 200;
+    const rz = (Math.random() - 0.5) * 200;
+    armadilloList.push(new VoxelArmadillo(rx, rz));
+  }
+  for (let i = 0; i < 20; i++) {
+    const rx = (Math.random() - 0.5) * 200;
+    const rz = (Math.random() - 0.5) * 200;
+    wolfList.push(new VoxelWolf(rx, rz));
+  }
+}
+spawnInitialMobs();
 
 const spawnGroundY = getGroundHeight(0, 0);
 camera.position.set(0, spawnGroundY + 1.6, 0);
@@ -1627,11 +1703,42 @@ document.addEventListener('mousedown', (e) => {
   while (parentObj && parentObj.parent && parentObj.parent !== scene) {
     parentObj = parentObj.parent;
   }
-  const targetZombieIdx = zombieList.findIndex(z => z.group === parentObj);
 
+  // 擊打殭屍
+  const targetZombieIdx = zombieList.findIndex(z => z.group === parentObj);
   if (targetZombieIdx !== -1 && e.button === 0) {
     const isDead = zombieList[targetZombieIdx].hit();
     if (isDead) zombieList.splice(targetZombieIdx, 1);
+    return;
+  }
+
+  // 擊打羊
+  const targetSheepIdx = sheepList.findIndex(s => s.group === parentObj);
+  if (targetSheepIdx !== -1 && e.button === 0) {
+    const isDead = sheepList[targetSheepIdx].hit();
+    if (isDead) sheepList.splice(targetSheepIdx, 1);
+    return;
+  }
+
+  // 擊打犰狳
+  const targetArmadilloIdx = armadilloList.findIndex(a => a.group === parentObj);
+  if (targetArmadilloIdx !== -1 && e.button === 0) {
+    const isDead = armadilloList[targetArmadilloIdx].hit();
+    if (isDead) armadilloList.splice(targetArmadilloIdx, 1);
+    return;
+  }
+
+  // 擊打 / 餵食狼
+  const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
+  if (targetWolfIdx !== -1 && e.button === 0) {
+    const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
+    if (selectedBlock === BLOCKS.BONE_ITEM && !wolfList[targetWolfIdx].isTamed) {
+      wolfList[targetWolfIdx].tame();
+      alert('🐺 成功馴服狼！狼已裝備 1.20.6 狼鎧甲 (Wolf Armor)，將護衛玩家並攻擊殭屍！');
+      return;
+    }
+    const isDead = wolfList[targetWolfIdx].hit();
+    if (isDead) wolfList.splice(targetWolfIdx, 1);
     return;
   }
 
@@ -1710,15 +1817,17 @@ function initHotbarUI() {
     keyLabel.innerText = (index + 1) % 10;
     slot.appendChild(keyLabel);
 
-    const canvas = document.createElement('canvas');
-    canvas.width = 32;
-    canvas.height = 32;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = `#${block.color.toString(16).padStart(6, '0')}`;
-    ctx.fillRect(4, 4, 24, 24);
-    ctx.strokeStyle = '#ffffff';
-    ctx.strokeRect(4, 4, 24, 24);
-    slot.appendChild(canvas);
+    if (block) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = `#${block.color.toString(16).padStart(6, '0')}`;
+      ctx.fillRect(4, 4, 24, 24);
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(4, 4, 24, 24);
+      slot.appendChild(canvas);
+    }
 
     slot.addEventListener('click', () => selectHotbarSlot(index));
     hotbarEl.appendChild(slot);
@@ -1738,8 +1847,13 @@ function selectHotbarSlot(index) {
 
 function updateSelectedBlockText() {
   const b = HOTBAR_BLOCKS[selectedBlockIndex];
-  blockNameDisplay.innerText = b.name;
-  selectedBlockInfo.innerText = b.name;
+  if (b) {
+    blockNameDisplay.innerText = b.name;
+    selectedBlockInfo.innerText = b.name;
+  } else {
+    blockNameDisplay.innerText = '(空 Empty)';
+    selectedBlockInfo.innerText = '(空 Empty)';
+  }
 }
 
 initHotbarUI();

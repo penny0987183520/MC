@@ -79,6 +79,19 @@ body, html {
   line-height: 1.4;
 }
 
+#version-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #2b6cb0, #2c5282);
+  color: #ebf8ff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #4299e1;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
 .modal .subtitle {
   color: #a0aec0;
   font-size: 13px;
