@@ -5,6 +5,16 @@
 - **線上網站網址 (GitHub Pages)**：https://penny0987183520.github.io/MC/
 - **歷史封存檔**：[Checkpoints_Archive.md](file:///Users/bennychen/Library/CloudStorage/GoogleDrive-penny0987183520@gmail.com/我的雲端硬碟/game/MC/Checkpoints_Archive.md)
 
+## [v1.6] - 2026-09-30 (新增 150 隻馬鞍駿馬、點擊上馬騎乘、WASD 極速奔馳與跳躍)
+- **類型**：新坐騎生態 / 騎馬系統 (Horse Riding) / 鞍具裝備 / 60 FPS 極速優化
+- **主要變保**：
+  1. **新增 150 隻方塊駿馬 (VoxelHorse)**：地圖上大規模生成 150 隻 3D 方塊駿馬，自動配備皮革馬鞍 (Leather Saddle)、馬韁與鐵腳踏，野外自然馳騁。
+  2. **點擊上馬騎乘 (Mount Horse)**：滑鼠點擊任意駿馬即可直接騎乘上馬！攝影機自動視角鎖定至馬鞍上方。
+  3. **WASD 騎馬極速前行與 Space 大跳躍**：騎馬時使用 WASD 移動速度大幅提升 3 倍 (極速前行)，並有駿馬奔馳腿部動畫與蹄聲！按 Space 可觸發駿馬大跳躍跨越障礙。
+  4. **自由下馬機制**：騎馬狀態下按 Shift 或 Backspace 鍵即可隨時下馬。
+
+---
+
 ## [v1.5] - 2026-09-30 (1,400+隻大量生物集群、狼五官面孔、餵骨頭冒愛心與忠實跟隨、野生狼激怒反擊)
 - **類型**：大量生物群系 / 狼五官與AI反擊機制 / 餵食愛心粒子 / 60 FPS 效能優化
 - **主要變更**：

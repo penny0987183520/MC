@@ -252,7 +252,8 @@ const BLOCKS = {
   SHEEP_MEAT: { id: 29, name: '🥩 生羊肉 (Raw Mutton)', color: 0xc45c5c, isFood: true, restoresHunger: 3, isTool: true },
   PIG_MEAT: { id: 30, name: '🥓 生豬肉 (Raw Porkchop)', color: 0xe07a7a, isFood: true, restoresHunger: 4, isTool: true },
   COW_MEAT: { id: 31, name: '🥩 生牛肉 (Raw Beef)', color: 0x943030, isFood: true, restoresHunger: 4, isTool: true },
-  CHICKEN_MEAT: { id: 32, name: '🍗 生雞肉 (Raw Chicken)', color: 0xd6996b, isFood: true, restoresHunger: 3, isTool: true }
+  CHICKEN_MEAT: { id: 32, name: '🍗 生雞肉 (Raw Chicken)', color: 0xd6996b, isFood: true, restoresHunger: 3, isTool: true },
+  LEATHER_SADDLE: { id: 33, name: '🏇 皮革馬鞍 (Leather Saddle)', color: 0x5c3317, requiredHits: 1, isTool: true }
 };
 
 let HOTBAR_BLOCKS = [null, null, null, null, null, null, null, null, null, null];
@@ -355,7 +356,7 @@ function createPixelTexture(type, face = 'all') {
       ctx.fillStyle = '#a8a8a8';
       ctx.fillRect(rx, ry + 2, 6, 2);
     }
-  } else if (['SHEEP_MEAT', 'PIG_MEAT', 'COW_MEAT', 'CHICKEN_MEAT'].includes(type)) {
+  } else if (['SHEEP_MEAT', 'PIG_MEAT', 'COW_MEAT', 'CHICKEN_MEAT', 'LEATHER_SADDLE'].includes(type)) {
     const config = BLOCKS[type];
     ctx.fillStyle = `#${config.color.toString(16).padStart(6, '0')}`;
     ctx.fillRect(0, 0, size, size);
@@ -1090,7 +1091,7 @@ class VoxelSheep {
   }
 
   update(delta, time, playerPos) {
-    if (this.group.position.distanceTo(playerPos) > 60) return; // 離玩家太遠則不處理腿部動畫，保證 60 FPS
+    if (this.group.position.distanceTo(playerPos) > 60) return;
 
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
@@ -1376,6 +1377,130 @@ class VoxelChicken {
   }
 }
 
+// 🐎 方塊馬 & 自動裝備馬鞍 (Saddle) 可騎乘奔馳
+class VoxelHorse {
+  constructor(x, z) {
+    this.group = new THREE.Group();
+
+    const coatMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+    const maneMat = new THREE.MeshLambertMaterial({ color: 0x3a1e05 });
+    const saddleMat = new THREE.MeshLambertMaterial({ color: 0x5c3317 });
+    const ironMat = new THREE.MeshLambertMaterial({ color: 0xc0c0c0 });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 2.2), coatMat);
+    body.position.y = 1.2;
+    this.group.add(body);
+
+    // 自動配備馬鞍 (Saddle)
+    const saddle = new THREE.Mesh(new THREE.BoxGeometry(1.26, 0.2, 1.0), saddleMat);
+    saddle.position.set(0, 1.82, -0.1);
+    this.group.add(saddle);
+
+    const stirrupL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.2), ironMat);
+    stirrupL.position.set(-0.64, 1.3, -0.1);
+    const stirrupR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.2), ironMat);
+    stirrupR.position.set(0.64, 1.3, -0.1);
+    this.group.add(stirrupL);
+    this.group.add(stirrupR);
+
+    this.neck = new THREE.Group();
+    this.neck.position.set(0, 1.6, 0.9);
+
+    const neckMesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.6), coatMat);
+    neckMesh.rotation.x = -0.3;
+    this.neck.add(neckMesh);
+
+    this.head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 1.0), coatMat);
+    this.head.position.set(0, 0.6, 0.4);
+
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.5), coatMat);
+    snout.position.set(0, -0.1, 0.5);
+
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    eyeL.position.set(-0.31, 0.1, 0.2);
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    eyeR.position.set(0.31, 0.1, 0.2);
+
+    const earL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.3, 0.12), coatMat);
+    earL.position.set(-0.2, 0.4, -0.2);
+    const earR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.3, 0.12), coatMat);
+    earR.position.set(0.2, 0.4, -0.2);
+
+    const mane = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.4, 0.3), maneMat);
+    mane.position.set(0, 0.2, -0.35);
+
+    this.head.add(snout);
+    this.head.add(eyeL);
+    this.head.add(eyeR);
+    this.head.add(earL);
+    this.head.add(earR);
+    this.neck.add(this.head);
+    this.neck.add(mane);
+    this.group.add(this.neck);
+
+    this.legs = [];
+    [[-0.45, 0.6, 0.75], [0.45, 0.6, 0.75], [-0.45, 0.6, -0.75], [0.45, 0.6, -0.75]].forEach(pos => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.2, 0.35), coatMat);
+      leg.position.set(...pos);
+      this.group.add(leg);
+      this.legs.push(leg);
+    });
+
+    const groundY = getGroundHeight(x, z);
+    this.group.position.set(x, groundY, z);
+    scene.add(this.group);
+
+    this.health = 8;
+    this.isRidden = false;
+    this.targetDir = new THREE.Vector3();
+    this.changeDirectionTimer = 0;
+  }
+
+  hit() {
+    this.health--;
+    sounds.playHitZombie();
+    spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 0x8b4513);
+    if (this.health <= 0) {
+      scene.remove(this.group);
+      if (mountedHorse === this) {
+        mountedHorse = null;
+      }
+      spawnDroppedItem(this.group.position, 'LEATHER_SADDLE', 1);
+      return true;
+    }
+    return false;
+  }
+
+  update(delta, time, playerPos) {
+    if (this.isRidden) return;
+
+    if (this.group.position.distanceTo(playerPos) > 60) return;
+
+    this.changeDirectionTimer -= delta;
+    if (this.changeDirectionTimer <= 0) {
+      const angle = Math.random() * Math.PI * 2;
+      this.targetDir.set(Math.cos(angle), 0, Math.sin(angle));
+      this.group.rotation.y = Math.atan2(this.targetDir.x, this.targetDir.z);
+      this.changeDirectionTimer = 3 + Math.random() * 4;
+    }
+
+    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 1.0);
+    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+
+    if (targetY - this.group.position.y <= 1.1) {
+      this.group.position.x = nextPos.x;
+      this.group.position.z = nextPos.z;
+      this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
+    } else {
+      this.changeDirectionTimer = 0;
+    }
+
+    this.legs.forEach((leg, idx) => {
+      leg.rotation.x = Math.sin(time * 6 + idx) * 0.4;
+    });
+  }
+}
+
 // 🧟 殭屍 Mob
 class VoxelZombie {
   constructor(x, z) {
@@ -1571,7 +1696,7 @@ class VoxelArmadillo {
   }
 }
 
-// 🐺 1.20.6 可馴服/反擊野生狼 Companion & Hostile Wild Wolf
+// 🐺 1.20.6 可馴服/反擊野生狼
 class VoxelWolf {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1602,7 +1727,6 @@ class VoxelWolf {
     const snout = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.3), this.skinMat);
     snout.position.set(0, -0.1, 0.3);
 
-    // 狼的清晰眼睛與嘴巴
     this.eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), this.eyeNormalMat);
     this.eyeL.position.set(-0.14, 0.08, 0.26);
 
@@ -1645,7 +1769,6 @@ class VoxelWolf {
     sounds.playHitZombie();
     spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.6, 0)), 0xd3d3d3);
 
-    // 未服從前被打會激怒！眼睛發紅反擊咬玩家
     if (!this.isTamed) {
       this.isAngry = true;
       this.eyeL.material = this.eyeAngryMat;
@@ -1705,7 +1828,6 @@ class VoxelWolf {
           }
         }
       } else {
-        // 緊密跟隨玩家 (走到哪跟到哪)
         const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
         dir.y = 0;
         const dist = dir.length();
@@ -1717,7 +1839,6 @@ class VoxelWolf {
         }
       }
     } else if (this.isAngry) {
-      // 激怒狀態：追咬玩家 (一次扣 1 顆心 / 2 點血量)
       const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
       dir.y = 0;
       const dist = dir.length();
@@ -1737,10 +1858,9 @@ class VoxelWolf {
       if (dist <= 1.3 && this.attackCooldown <= 0) {
         this.attackCooldown = 1.2;
         sounds.playHitZombie();
-        hurtPlayerCb(2); // 反擊咬玩家一咬即扣 1 顆心！
+        hurtPlayerCb(2);
       }
     } else {
-      // 野生和平踱步
       this.changeDirTimer -= delta;
       if (this.changeDirTimer <= 0) {
         const angle = Math.random() * Math.PI * 2;
@@ -1838,11 +1958,14 @@ const sheepList = [];
 const pigList = [];
 const cowList = [];
 const chickenList = [];
+const horseList = [];
 const zombieList = [];
 const armadilloList = [];
 const wolfList = [];
+let mountedHorse = null;
+let horseVelocityY = 0;
 
-// 依照需求大規模生成指定數量的生物：羊 500隻、豬 400隻、牛 200隻、雞 200隻、狼 100隻
+// 生物生成：羊 500隻、豬 400隻、牛 200隻、雞 200隻、馬 150隻、狼 100隻
 function spawnInitialMobs() {
   for (let i = 0; i < 500; i++) {
     const rx = (Math.random() - 0.5) * 320;
@@ -1863,6 +1986,11 @@ function spawnInitialMobs() {
     const rx = (Math.random() - 0.5) * 320;
     const rz = (Math.random() - 0.5) * 320;
     chickenList.push(new VoxelChicken(rx, rz));
+  }
+  for (let i = 0; i < 150; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
+    horseList.push(new VoxelHorse(rx, rz));
   }
   for (let i = 0; i < 100; i++) {
     const rx = (Math.random() - 0.5) * 320;
@@ -1977,6 +2105,10 @@ function hurtPlayer(amount = 1) {
   updateHealthBar();
   if (playerHealth <= 0) {
     alert('💀 你已被擊敗！世界已重置重生。');
+    if (mountedHorse) {
+      mountedHorse.isRidden = false;
+      mountedHorse = null;
+    }
     playerHealth = 10;
     playerHunger = 10;
     const respawnY = getGroundHeight(0, 0) + 1.6;
@@ -2091,12 +2223,24 @@ document.addEventListener('keydown', (event) => {
 
   if (event.code === 'Backspace') {
     event.preventDefault();
+    if (mountedHorse) {
+      mountedHorse.isRidden = false;
+      mountedHorse = null;
+      alert('🏇 已下馬 (Dismounted)');
+      return;
+    }
     currentMode = (currentMode === GAME_MODES.SPECTATOR) ? GAME_MODES.SURVIVAL : GAME_MODES.SPECTATOR;
     updateModeDisplay();
     return;
   }
 
   if (event.key === 'Shift' || event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+    if (mountedHorse) {
+      mountedHorse.isRidden = false;
+      mountedHorse = null;
+      alert('🏇 已下馬 (Dismounted)');
+      return;
+    }
     if (controls.isLocked) {
       currentMode = (currentMode === GAME_MODES.CREATIVE) ? GAME_MODES.SURVIVAL : GAME_MODES.CREATIVE;
       updateModeDisplay();
@@ -2116,7 +2260,7 @@ document.addEventListener('keydown', (event) => {
       break;
     case 'Space':
       moveUp = true;
-      if (canJump && currentMode !== GAME_MODES.SPECTATOR) {
+      if (canJump && currentMode !== GAME_MODES.SPECTATOR && !mountedHorse) {
         velocity.y = 7.07;
         sounds.playJump();
         canJump = false;
@@ -2129,7 +2273,7 @@ document.addEventListener('keydown', (event) => {
     case 'Digit4': selectHotbarSlot(3); break;
     case 'Digit5': selectHotbarSlot(4); break;
     case 'Digit6': selectHotbarSlot(5); break;
-    case 'Digit7': selectHotbarSlot(6); break;
+    case 'Digit7': selectHotbarSlot(7); break;
     case 'Digit8': selectHotbarSlot(7); break;
     case 'Digit9': selectHotbarSlot(8); break;
     case 'Digit0': selectHotbarSlot(9); break;
@@ -2159,7 +2303,7 @@ document.addEventListener('wheel', (e) => {
   }
 });
 
-// 滑鼠點擊
+// 滑鼠點擊與騎馬機制
 document.addEventListener('mousedown', (e) => {
   if (!controls.isLocked) return;
   if (currentMode === GAME_MODES.SPECTATOR) return;
@@ -2173,13 +2317,31 @@ document.addEventListener('mousedown', (e) => {
     return;
   }
 
-  // 生物點擊打擊與餵食測試
+  // 生物點擊打擊、餵食與上馬騎乘測試
   raycaster.setFromCamera(centerVector, camera);
   const mobIntersects = raycaster.intersectObjects(scene.children, true);
   if (mobIntersects.length > 0 && mobIntersects[0].distance < 8) {
     let parentObj = mobIntersects[0].object;
     while (parentObj && parentObj.parent && parentObj.parent !== scene) {
       parentObj = parentObj.parent;
+    }
+
+    // 點擊馬鞍馬匹騎乘！
+    const targetHorseIdx = horseList.findIndex(h => h.group === parentObj);
+    if (targetHorseIdx !== -1) {
+      const targetHorse = horseList[targetHorseIdx];
+      if (mountedHorse === targetHorse) {
+        mountedHorse.isRidden = false;
+        mountedHorse = null;
+        alert('🏇 已下馬 (Dismounted)');
+      } else {
+        if (mountedHorse) mountedHorse.isRidden = false;
+        mountedHorse = targetHorse;
+        mountedHorse.isRidden = true;
+        sounds.playJump();
+        alert('🏇 成功騎上駿馬！使用 WASD 快速奔馳，按 Shift 或 Backspace 可下馬。');
+      }
+      return;
     }
 
     const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
@@ -2464,6 +2626,7 @@ function animate() {
   pigList.forEach(pig => pig.update(delta, nowTime, camera.position));
   cowList.forEach(cow => cow.update(delta, nowTime, camera.position));
   chickenList.forEach(chicken => chicken.update(delta, nowTime, camera.position));
+  horseList.forEach(horse => horse.update(delta, nowTime, camera.position));
   zombieList.forEach(zombie => zombie.update(delta, camera.position, hurtPlayer));
   armadilloList.forEach(armadillo => armadillo.update(delta, nowTime, camera.position));
   wolfList.forEach(wolf => wolf.update(delta, camera.position, zombieList, hurtPlayer));
@@ -2488,7 +2651,46 @@ function animate() {
   if (moveLeft) moveVec.sub(camRight);
   if (moveVec.lengthSq() > 0) moveVec.normalize();
 
-  if (currentMode === GAME_MODES.SPECTATOR) {
+  if (mountedHorse) {
+    // 🐎 騎馬快速奔馳控制機制
+    const rideSpeed = 15.0 * delta;
+    const oldHorsePos = mountedHorse.group.position.clone();
+
+    if (moveVec.lengthSq() > 0) {
+      mountedHorse.group.position.x += moveVec.x * rideSpeed;
+      if (checkPlayerCollision(mountedHorse.group.position)) {
+        mountedHorse.group.position.x = oldHorsePos.x;
+      }
+
+      mountedHorse.group.position.z += moveVec.z * rideSpeed;
+      if (checkPlayerCollision(mountedHorse.group.position)) {
+        mountedHorse.group.position.z = oldHorsePos.z;
+      }
+
+      mountedHorse.group.rotation.y = Math.atan2(moveVec.x, moveVec.z);
+
+      const t = performance.now() / 80;
+      mountedHorse.legs.forEach((leg, idx) => {
+        leg.rotation.x = Math.sin(t + idx) * 0.6;
+      });
+    }
+
+    horseVelocityY -= 25.0 * delta;
+    mountedHorse.group.position.y += horseVelocityY * delta;
+
+    const targetGroundY = getGroundHeightAtFeet(mountedHorse.group.position.x, mountedHorse.group.position.y, mountedHorse.group.position.z);
+    if (mountedHorse.group.position.y <= targetGroundY) {
+      horseVelocityY = 0;
+      mountedHorse.group.position.y = targetGroundY;
+      if (moveUp) {
+        horseVelocityY = 8.5; // 駿馬大跳躍！
+        sounds.playJump();
+      }
+    }
+
+    camera.position.copy(mountedHorse.group.position).add(new THREE.Vector3(0, 2.2, 0));
+
+  } else if (currentMode === GAME_MODES.SPECTATOR) {
     velocity.set(0, 0, 0);
     const flySpeed = 15.0 * delta;
 
