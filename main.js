@@ -224,371 +224,295 @@ const BLOCKS = {
   GLOWSTONE: { id: 22, name: '✨ 螢光石 (Glowstone)', color: 0xffe885, emissive: 0xffaa00, requiredHits: 3 },
   BRUSH_TOOL: { id: 23, name: '🧹 考古刷 (Archaeology Brush)', color: 0xd4a373, requiredHits: 1, isTool: true },
   BONE_ITEM: { id: 24, name: '🦴 骨頭 (餵食馴服狼)', color: 0xfefae0, requiredHits: 1, isTool: true },
-  WOLF_ARMOR: { id: 25, name: '🛡️ 1.20.6 狼鎧甲 (Wolf Armor)', color: 0x8b5e3c, requiredHits: 1, isTool: true }
+  WOLF_ARMOR: { id: 25, name: '🛡️ 1.20.6 狼鎧甲 (Wolf Armor)', color: 0x8b5e3c, requiredHits: 1, isTool: true },
+  CHERRY_PLANKS: { id: 26, name: '🌸 櫻花木板 (Cherry Planks)', color: 0xe8a5b8, requiredHits: 3 },
+  BAMBOO_BLOCK: { id: 27, name: '🎋 竹子塊 (Bamboo Block)', color: 0x76a035, requiredHits: 3 },
+  BAMBOO_MOSAIC: { id: 28, name: '🎋 竹木馬賽克 (Bamboo Mosaic)', color: 0x99bb33, requiredHits: 3 }
 };
 
 let HOTBAR_BLOCKS = [null, null, null, null, null, null, null, null, null, null];
-
 let selectedBlockIndex = 0;
 
-// 32x32 高畫質紋理生成
+// --- 64x64 高解析度 HD 超擬真 Minecraft 紋理生成器 ---
+const textureCache = new Map();
+
 function createPixelTexture(type, face = 'all') {
+  const cacheKey = `${type}_${face}`;
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
+
   const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 32;
+  const size = 64; // 升級至 64x64 高畫質解析度
+  canvas.width = size;
+  canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  function randomNoise(baseR, baseG, baseB, variance = 20) {
+  function randomNoise(baseR, baseG, baseB, variance = 18) {
     const v = (Math.random() - 0.5) * variance;
-    return `rgb(${Math.min(255, Math.max(0, baseR + v))}, ${Math.min(255, Math.max(0, baseG + v))}, ${Math.min(255, Math.max(0, baseB + v))})`;
+    const r = Math.min(255, Math.max(0, Math.floor(baseR + v)));
+    const g = Math.min(255, Math.max(0, Math.floor(baseG + v)));
+    const b = Math.min(255, Math.max(0, Math.floor(baseB + v)));
+    return `rgb(${r},${g},${b})`;
   }
 
+  // 繪製細緻紋理底圖
   if (type === 'GRASS') {
     if (face === 'top') {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = randomNoise(90, 165, 50, 25);
-          ctx.fillRect(x, y, 1, 1);
+      // 超立體草地綠毯
+      ctx.fillStyle = '#5c8e2b';
+      ctx.fillRect(0, 0, size, size);
+      for (let x = 0; x < size; x += 2) {
+        for (let y = 0; y < size; y += 2) {
+          ctx.fillStyle = randomNoise(92, 148, 42, 26);
+          ctx.fillRect(x, y, 2, 2);
         }
+      }
+      // 草地高光與陰影刀鋒
+      for (let i = 0; i < 60; i++) {
+        const rx = Math.floor(Math.random() * (size - 4));
+        const ry = Math.floor(Math.random() * (size - 4));
+        ctx.fillStyle = Math.random() > 0.4 ? '#7cb33d' : '#3d631d';
+        ctx.fillRect(rx, ry, 3, 3);
       }
     } else if (face === 'side') {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = randomNoise(130, 90, 60, 25);
-          ctx.fillRect(x, y, 1, 1);
+      // 泥土底圖
+      ctx.fillStyle = '#866043';
+      ctx.fillRect(0, 0, size, size);
+      for (let x = 0; x < size; x += 2) {
+        for (let y = 0; y < size; y += 2) {
+          ctx.fillStyle = randomNoise(134, 96, 67, 24);
+          ctx.fillRect(x, y, 2, 2);
         }
       }
-      for (let x = 0; x < 32; x++) {
-        const grassDepth = 6 + Math.floor(Math.random() * 5);
-        for (let y = 0; y < grassDepth; y++) {
-          ctx.fillStyle = randomNoise(90, 165, 50, 25);
-          ctx.fillRect(x, y, 1, 1);
+      // 上方下垂草葉垂墜邊緣 (Overhang Drips)
+      for (let x = 0; x < size; x += 2) {
+        const depth = 12 + Math.floor(Math.sin(x * 0.2) * 4 + Math.random() * 6);
+        for (let y = 0; y < depth; y += 2) {
+          ctx.fillStyle = randomNoise(92, 148, 42, 24);
+          ctx.fillRect(x, y, 2, 2);
         }
+        // 深色草根陰影
+        ctx.fillStyle = '#3d631d';
+        ctx.fillRect(x, depth, 2, 2);
       }
     } else {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = randomNoise(130, 90, 60, 25);
-          ctx.fillRect(x, y, 1, 1);
+      ctx.fillStyle = '#866043';
+      ctx.fillRect(0, 0, size, size);
+      for (let x = 0; x < size; x += 2) {
+        for (let y = 0; y < size; y += 2) {
+          ctx.fillStyle = randomNoise(134, 96, 67, 24);
+          ctx.fillRect(x, y, 2, 2);
         }
       }
     }
   } else if (type === 'DIRT') {
-    for (let x = 0; x < 32; x++) {
-      for (let y = 0; y < 32; y++) {
-        ctx.fillStyle = randomNoise(130, 90, 60, 30);
-        ctx.fillRect(x, y, 1, 1);
+    ctx.fillStyle = '#866043';
+    ctx.fillRect(0, 0, size, size);
+    for (let x = 0; x < size; x += 2) {
+      for (let y = 0; y < size; y += 2) {
+        ctx.fillStyle = randomNoise(134, 96, 67, 28);
+        ctx.fillRect(x, y, 2, 2);
       }
+    }
+    // 泥土中的小石子細節
+    for (let i = 0; i < 20; i++) {
+      const rx = Math.floor(Math.random() * (size - 4));
+      const ry = Math.floor(Math.random() * (size - 4));
+      ctx.fillStyle = Math.random() > 0.5 ? '#5c412d' : '#a67b5b';
+      ctx.fillRect(rx, ry, 4, 4);
     }
   } else if (type === 'STONE') {
-    for (let x = 0; x < 32; x++) {
-      for (let y = 0; y < 32; y++) {
-        ctx.fillStyle = randomNoise(128, 128, 128, 35);
-        ctx.fillRect(x, y, 1, 1);
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, size, size);
+    for (let x = 0; x < size; x += 2) {
+      for (let y = 0; y < size; y += 2) {
+        ctx.fillStyle = randomNoise(128, 128, 128, 32);
+        ctx.fillRect(x, y, 2, 2);
       }
     }
-  } else if (type === 'WOOD' || type === 'OAK_LOG') {
+    // 石頭裂紋與深色陰影塊
+    for (let i = 0; i < 15; i++) {
+      const rx = Math.floor(Math.random() * (size - 6));
+      const ry = Math.floor(Math.random() * (size - 6));
+      ctx.fillStyle = '#545454';
+      ctx.fillRect(rx, ry, 6, 2);
+      ctx.fillStyle = '#a8a8a8';
+      ctx.fillRect(rx, ry + 2, 6, 2);
+    }
+  } else if (['WOOD', 'OAK_LOG', 'SPRUCE_LOG', 'BIRCH_LOG', 'JUNGLE_LOG', 'ACACIA_LOG', 'DARK_OAK_LOG', 'CHERRY_LOG'].includes(type)) {
     if (face === 'top' || face === 'bottom') {
-      ctx.fillStyle = '#a07850';
-      ctx.fillRect(0, 0, 32, 32);
+      ctx.fillStyle = type === 'CHERRY_LOG' ? '#e8a5b8' : (type === 'BIRCH_LOG' ? '#d6c89b' : '#a07850');
+      ctx.fillRect(0, 0, size, size);
       ctx.strokeStyle = '#5c4028';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(3, 3, 26, 26);
-      ctx.strokeRect(9, 9, 14, 14);
-      ctx.fillStyle = '#b88a5c';
-      ctx.fillRect(13, 13, 6, 6);
+      ctx.lineWidth = 4;
+      ctx.strokeRect(6, 6, size - 12, size - 12);
+      ctx.strokeRect(18, 18, size - 36, size - 36);
+      ctx.fillStyle = '#5c4028';
+      ctx.fillRect(28, 28, 8, 8);
     } else {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = (x % 6 < 2) ? '#3c281e' : randomNoise(103, 77, 60, 20);
-          ctx.fillRect(x, y, 1, 1);
+      ctx.fillStyle = '#674d3c';
+      ctx.fillRect(0, 0, size, size);
+      for (let x = 0; x < size; x += 2) {
+        for (let y = 0; y < size; y += 2) {
+          const isGroove = (x % 12 < 4);
+          if (type === 'BIRCH_LOG') {
+            ctx.fillStyle = isGroove ? '#1a1a1a' : randomNoise(235, 235, 235, 15);
+          } else if (type === 'CHERRY_LOG') {
+            ctx.fillStyle = isGroove ? '#45222e' : randomNoise(181, 101, 118, 24);
+          } else {
+            ctx.fillStyle = isGroove ? '#3c281e' : randomNoise(115, 85, 62, 24);
+          }
+          ctx.fillRect(x, y, 2, 2);
         }
       }
     }
-  } else if (type === 'SPRUCE_LOG') {
-    if (face === 'top' || face === 'bottom') {
-      ctx.fillStyle = '#7a583a';
-      ctx.fillRect(0, 0, 32, 32);
-      ctx.strokeStyle = '#3a2414';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(3, 3, 26, 26);
-      ctx.strokeRect(9, 9, 14, 14);
-    } else {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = (x % 5 < 2) ? '#1e140a' : randomNoise(58, 40, 26, 25);
-          ctx.fillRect(x, y, 1, 1);
+  } else if (type === 'LEAVES' || type === 'CHERRY_LEAVES') {
+    const isCherry = (type === 'CHERRY_LEAVES');
+    ctx.fillStyle = isCherry ? '#ffb7c5' : '#2d5a1e';
+    ctx.fillRect(0, 0, size, size);
+    for (let i = 0; i < 240; i++) {
+      const rx = Math.floor(Math.random() * (size - 3));
+      const ry = Math.floor(Math.random() * (size - 3));
+      if (isCherry) {
+        ctx.fillStyle = randomNoise(255, 175, 195, 45);
+      } else {
+        ctx.fillStyle = randomNoise(60, 145, 40, 45);
+      }
+      ctx.fillRect(rx, ry, 4, 4);
+    }
+  } else if (type === 'DIAMOND') {
+    ctx.fillStyle = '#3dbdb2';
+    ctx.fillRect(0, 0, size, size);
+    for (let x = 0; x < size; x += 4) {
+      for (let y = 0; y < size; y += 4) {
+        if ((x + y) % 8 === 0) {
+          ctx.fillStyle = '#bdffff';
+          ctx.fillRect(x, y, 4, 4);
+        } else {
+          ctx.fillStyle = randomNoise(60, 215, 205, 30);
+          ctx.fillRect(x, y, 4, 4);
         }
       }
     }
-  } else if (type === 'BIRCH_LOG') {
-    if (face === 'top' || face === 'bottom') {
-      ctx.fillStyle = '#d6c89b';
-      ctx.fillRect(0, 0, 32, 32);
-      ctx.strokeStyle = '#b5a578';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(3, 3, 26, 26);
-      ctx.strokeRect(9, 9, 14, 14);
-      ctx.strokeStyle = '#e6e6e6';
-      ctx.strokeRect(0, 0, 32, 32);
-    } else {
-      ctx.fillStyle = '#f0f0f0';
-      ctx.fillRect(0, 0, 32, 32);
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(2, 6, 8, 3);
-      ctx.fillRect(18, 12, 10, 3);
-      ctx.fillRect(8, 22, 12, 3);
-      ctx.fillRect(24, 28, 6, 2);
-    }
-  } else if (type === 'JUNGLE_LOG') {
-    if (face === 'top' || face === 'bottom') {
-      ctx.fillStyle = '#996d4d';
-      ctx.fillRect(0, 0, 32, 32);
-      ctx.strokeStyle = '#5c3d28';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(3, 3, 26, 26);
-      ctx.strokeRect(9, 9, 14, 14);
-    } else {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = (y % 6 < 2) ? '#38281c' : randomNoise(82, 62, 43, 20);
-          ctx.fillRect(x, y, 1, 1);
-        }
+    // 鑽石切面邊框
+    ctx.strokeStyle = '#217a74';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, 2, size - 4, size - 4);
+  } else if (type === 'TNT') {
+    ctx.fillStyle = '#cc2e21';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 20, size, 24);
+    ctx.fillStyle = '#000000';
+    ctx.font = '900 20px sans-serif';
+    ctx.fillText('TNT', 11, 39);
+    // 上下方條紋
+    ctx.fillStyle = '#8b1d14';
+    ctx.fillRect(0, 0, size, 4);
+    ctx.fillRect(0, size - 4, size, 4);
+  } else if (type === 'SUSPICIOUS_SAND') {
+    ctx.fillStyle = '#e0c068';
+    ctx.fillRect(0, 0, size, size);
+    for (let x = 0; x < size; x += 2) {
+      for (let y = 0; y < size; y += 2) {
+        ctx.fillStyle = randomNoise(224, 192, 104, 32);
+        ctx.fillRect(x, y, 2, 2);
       }
     }
-  } else if (type === 'ACACIA_LOG') {
-    if (face === 'top' || face === 'bottom') {
-      ctx.fillStyle = '#b8482d';
-      ctx.fillRect(0, 0, 32, 32);
-      ctx.strokeStyle = '#d05a3c';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(3, 3, 26, 26);
-      ctx.strokeRect(9, 9, 14, 14);
-    } else {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = (x % 7 < 2) ? '#3d3f42' : randomNoise(99, 101, 105, 20);
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
-    }
-  } else if (type === 'DARK_OAK_LOG') {
-    if (face === 'top' || face === 'bottom') {
-      ctx.fillStyle = '#483018';
-      ctx.fillRect(0, 0, 32, 32);
-      ctx.strokeStyle = '#2a1b0c';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(3, 3, 26, 26);
-      ctx.strokeRect(9, 9, 14, 14);
-    } else {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = (x % 6 < 2) ? '#181008' : randomNoise(42, 27, 12, 20);
-          ctx.fillRect(x, y, 1, 1);
-        }
+    // 古代陶瓷碎片黑印
+    ctx.fillStyle = '#8f6527';
+    ctx.fillRect(16, 16, 8, 8);
+    ctx.fillRect(40, 36, 10, 8);
+    ctx.fillRect(12, 44, 6, 6);
+  } else if (type === 'COPPER_BULB') {
+    ctx.fillStyle = '#c87d55';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillRect(16, 16, 32, 32);
+    ctx.fillStyle = '#fff3b5';
+    ctx.fillRect(24, 24, 16, 16);
+    ctx.strokeStyle = '#7a4228';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(4, 4, size - 8, size - 8);
+  } else if (type === 'GLOWSTONE') {
+    ctx.fillStyle = '#ffe885';
+    ctx.fillRect(0, 0, size, size);
+    for (let x = 0; x < size; x += 4) {
+      for (let y = 0; y < size; y += 4) {
+        ctx.fillStyle = randomNoise(245, 210, 80, 50);
+        ctx.fillRect(x, y, 4, 4);
       }
     }
   } else if (type === 'CHEST') {
     ctx.fillStyle = '#855428';
-    ctx.fillRect(0, 0, 32, 32);
+    ctx.fillRect(0, 0, size, size);
     ctx.fillStyle = '#3a2412';
-    ctx.fillRect(0, 0, 32, 2);
-    ctx.fillRect(0, 30, 32, 2);
-    ctx.fillRect(0, 0, 2, 32);
-    ctx.fillRect(30, 0, 2, 32);
-    ctx.fillRect(0, 14, 32, 3);
+    ctx.fillRect(0, 0, size, 4);
+    ctx.fillRect(0, size - 4, size, 4);
+    ctx.fillRect(0, 0, 4, size);
+    ctx.fillRect(size - 4, 0, 4, size);
+    ctx.fillRect(0, 28, size, 6);
     if (face === 'front') {
       ctx.fillStyle = '#e6b800';
-      ctx.fillRect(13, 11, 6, 8);
+      ctx.fillRect(26, 22, 12, 16);
       ctx.fillStyle = '#222';
-      ctx.fillRect(15, 14, 2, 3);
+      ctx.fillRect(30, 28, 4, 6);
     }
-  } else if (type === 'LEAVES') {
-    ctx.fillStyle = '#2d5a1e';
-    ctx.fillRect(0, 0, 32, 32);
-    for (let i = 0; i < 90; i++) {
-      const rx = Math.floor(Math.random() * 32);
-      const ry = Math.floor(Math.random() * 32);
-      ctx.fillStyle = randomNoise(60, 145, 40, 40);
-      ctx.fillRect(rx, ry, 2, 2);
-    }
-  } else if (type === 'BRICK') {
-    ctx.fillStyle = '#b8523f';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#d1d5db';
-    ctx.fillRect(0, 15, 32, 2);
-    ctx.fillRect(0, 30, 32, 2);
-    ctx.fillRect(15, 0, 2, 15);
-    ctx.fillRect(31, 0, 2, 15);
-    ctx.fillRect(7, 16, 2, 15);
-    ctx.fillRect(23, 16, 2, 15);
-  } else if (type === 'GLASS') {
-    ctx.fillStyle = 'rgba(200, 235, 255, 0.2)';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.fillRect(4, 4, 4, 4);
-    ctx.fillRect(8, 8, 2, 2);
-    ctx.fillRect(22, 22, 6, 2);
-  } else if (type === 'DIAMOND') {
-    ctx.fillStyle = '#4ee1d8';
-    ctx.fillRect(0, 0, 32, 32);
-    for (let x = 0; x < 32; x++) {
-      for (let y = 0; y < 32; y++) {
-        if ((x + y) % 4 === 0) {
-          ctx.fillStyle = randomNoise(90, 240, 230, 25);
-          ctx.fillRect(x, y, 1, 1);
+  } else {
+    const config = BLOCKS[type] || BLOCKS.DIRT;
+    const hex = `#${config.color.toString(16).padStart(6, '0')}`;
+    ctx.fillStyle = hex;
+    ctx.fillRect(0, 0, size, size);
+    for (let x = 0; x < size; x += 4) {
+      for (let y = 0; y < size; y += 4) {
+        if ((x + y) % 8 === 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.15)';
+          ctx.fillRect(x, y, 4, 4);
         }
       }
     }
-  } else if (type === 'TNT') {
-    ctx.fillStyle = '#d93829';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 10, 32, 12);
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.fillText('TNT', 5, 20);
-  } else if (type === 'GLOWSTONE') {
-    ctx.fillStyle = '#fce586';
-    ctx.fillRect(0, 0, 32, 32);
-    for (let x = 0; x < 32; x++) {
-      for (let y = 0; y < 32; y++) {
-        ctx.fillStyle = randomNoise(245, 210, 80, 40);
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
-  } else if (type === 'CHERRY_LOG') {
-    if (face === 'top' || face === 'bottom') {
-      ctx.fillStyle = '#e8a5b8';
-      ctx.fillRect(0, 0, 32, 32);
-      ctx.strokeStyle = '#9c526b';
-      ctx.strokeRect(4, 4, 24, 24);
-      ctx.strokeRect(10, 10, 12, 12);
-    } else {
-      for (let x = 0; x < 32; x++) {
-        for (let y = 0; y < 32; y++) {
-          ctx.fillStyle = (x % 8 < 2) ? '#5c2d3e' : randomNoise(181, 101, 118, 20);
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
-    }
-  } else if (type === 'CHERRY_LEAVES') {
-    ctx.fillStyle = '#ffb7c5';
-    ctx.fillRect(0, 0, 32, 32);
-    for (let i = 0; i < 90; i++) {
-      const rx = Math.floor(Math.random() * 32);
-      const ry = Math.floor(Math.random() * 32);
-      ctx.fillStyle = randomNoise(255, 180, 200, 40);
-      ctx.fillRect(rx, ry, 2, 2);
-    }
-  } else if (type === 'CHERRY_PLANKS') {
-    ctx.fillStyle = '#e8a5b8';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#c77d94';
-    ctx.fillRect(0, 7, 32, 2);
-    ctx.fillRect(0, 15, 32, 2);
-    ctx.fillRect(0, 23, 32, 2);
-  } else if (type === 'BAMBOO_BLOCK') {
-    for (let x = 0; x < 32; x++) {
-      for (let y = 0; y < 32; y++) {
-        ctx.fillStyle = (x % 6 < 2) ? '#4e7322' : randomNoise(118, 160, 53, 20);
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
-  } else if (type === 'BAMBOO_MOSAIC') {
-    ctx.fillStyle = '#aacc44';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#779922';
-    ctx.strokeRect(2, 2, 12, 12);
-    ctx.strokeRect(18, 18, 12, 12);
-  } else if (type === 'SUSPICIOUS_SAND') {
-    for (let x = 0; x < 32; x++) {
-      for (let y = 0; y < 32; y++) {
-        ctx.fillStyle = randomNoise(224, 192, 104, 35);
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
-    ctx.fillStyle = '#8f6527';
-    ctx.fillRect(8, 8, 4, 4);
-    ctx.fillRect(20, 18, 5, 4);
-  } else if (type === 'COPPER_BULB') {
-    ctx.fillStyle = '#c87d55';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#ffaa00';
-    ctx.fillRect(8, 8, 16, 16);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(12, 12, 8, 8);
-  } else if (type === 'CRAFTER') {
-    ctx.fillStyle = '#5a5a6e';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#2d2d38';
-    ctx.fillRect(4, 4, 24, 24);
-    ctx.fillStyle = '#ff4444';
-    ctx.fillRect(24, 4, 4, 4);
-  } else if (type === 'DECORATED_POT') {
-    ctx.fillStyle = '#b25d38';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#6b321a';
-    ctx.strokeRect(6, 6, 20, 20);
-  } else if (type === 'BRUSH_TOOL') {
-    ctx.fillStyle = '#d4a373';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#faedcd';
-    ctx.fillRect(10, 4, 12, 12);
-    ctx.fillStyle = '#d4a373';
-    ctx.fillRect(14, 16, 4, 14);
-  } else if (type === 'BONE_ITEM') {
-    ctx.fillStyle = '#333333';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#fefae0';
-    ctx.fillRect(6, 14, 20, 4);
-    ctx.fillRect(4, 12, 4, 8);
-    ctx.fillRect(24, 12, 4, 8);
-  } else if (type === 'WOLF_ARMOR') {
-    ctx.fillStyle = '#8b5e3c';
-    ctx.fillRect(0, 0, 32, 32);
-    ctx.fillStyle = '#d4a373';
-    ctx.strokeRect(4, 4, 24, 24);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  textureCache.set(cacheKey, texture);
   return texture;
 }
 
-const blockMaterials = {};
+const blockMaterialsCache = {};
 function getBlockMaterials(blockTypeKey) {
-  if (blockMaterials[blockTypeKey]) return blockMaterials[blockTypeKey];
+  if (blockMaterialsCache[blockTypeKey]) return blockMaterialsCache[blockTypeKey];
 
   if (['WOOD', 'OAK_LOG', 'SPRUCE_LOG', 'BIRCH_LOG', 'JUNGLE_LOG', 'ACACIA_LOG', 'DARK_OAK_LOG', 'CHERRY_LOG'].includes(blockTypeKey)) {
     const topMat = new THREE.MeshLambertMaterial({ map: createPixelTexture(blockTypeKey, 'top') });
     const sideMat = new THREE.MeshLambertMaterial({ map: createPixelTexture(blockTypeKey, 'side') });
-    blockMaterials[blockTypeKey] = [sideMat, sideMat, topMat, topMat, sideMat, sideMat];
+    blockMaterialsCache[blockTypeKey] = [sideMat, sideMat, topMat, topMat, sideMat, sideMat];
   } else if (blockTypeKey === 'CHEST') {
     const frontMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('CHEST', 'front') });
     const sideMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('CHEST', 'side') });
     const topMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('CHEST', 'top') });
-    blockMaterials[blockTypeKey] = [sideMat, sideMat, topMat, topMat, frontMat, sideMat];
+    blockMaterialsCache[blockTypeKey] = [sideMat, sideMat, topMat, topMat, frontMat, sideMat];
   } else if (blockTypeKey === 'GRASS') {
     const topMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('GRASS', 'top') });
     const sideMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('GRASS', 'side') });
     const bottomMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('DIRT') });
-    blockMaterials[blockTypeKey] = [sideMat, sideMat, topMat, bottomMat, sideMat, sideMat];
+    blockMaterialsCache[blockTypeKey] = [sideMat, sideMat, topMat, bottomMat, sideMat, sideMat];
   } else if (blockTypeKey === 'COPPER_BULB') {
     const mat = new THREE.MeshStandardMaterial({
       map: createPixelTexture('COPPER_BULB'),
       emissive: 0xffaa00,
-      emissiveIntensity: 0.8
+      emissiveIntensity: 0.8,
+      roughness: 0.3
     });
-    blockMaterials[blockTypeKey] = mat;
+    blockMaterialsCache[blockTypeKey] = mat;
   } else if (blockTypeKey === 'GLOWSTONE') {
     const mat = new THREE.MeshStandardMaterial({
       map: createPixelTexture('GLOWSTONE'),
       emissive: 0xffaa00,
       emissiveIntensity: 0.6
     });
-    blockMaterials[blockTypeKey] = mat;
+    blockMaterialsCache[blockTypeKey] = mat;
   } else {
     const config = BLOCKS[blockTypeKey] || BLOCKS.DIRT;
     const mat = new THREE.MeshLambertMaterial({
@@ -596,9 +520,9 @@ function getBlockMaterials(blockTypeKey) {
       transparent: config.transparent || false,
       opacity: config.opacity || 1.0
     });
-    blockMaterials[blockTypeKey] = mat;
+    blockMaterialsCache[blockTypeKey] = mat;
   }
-  return blockMaterials[blockTypeKey];
+  return blockMaterialsCache[blockTypeKey];
 }
 
 // --- Three.js 初始化 ---
@@ -607,9 +531,8 @@ const scene = new THREE.Scene();
 
 const skyColorDay = new THREE.Color(0x7ec0ee);
 const skyColorNight = new THREE.Color(0x0a0e1a);
-const skyColorSunset = new THREE.Color(0xd97746);
 scene.background = skyColorDay.clone();
-scene.fog = new THREE.FogExp2(0x7ec0ee, 0.008);
+scene.fog = new THREE.FogExp2(0x7ec0ee, 0.007);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -623,18 +546,24 @@ scene.add(camera);
 
 const controls = new PointerLockControls(camera, document.body);
 
-// 光照系統
+// 光照系統 (提升光影對比與柔和陰影)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
 scene.add(ambientLight);
 
-const sunLight = new THREE.DirectionalLight(0xfff5ea, 1.1);
+const sunLight = new THREE.DirectionalLight(0xfff5ea, 1.25);
 sunLight.position.set(80, 120, 50);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 2048;
 sunLight.shadow.mapSize.height = 2048;
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 300;
+sunLight.shadow.camera.left = -100;
+sunLight.shadow.camera.right = 100;
+sunLight.shadow.camera.top = 100;
+sunLight.shadow.camera.bottom = -100;
 scene.add(sunLight);
 
-// 手臂與十字鎬動畫
+// 第一人稱手臂與十字鎬動畫
 const handGroup = new THREE.Group();
 
 const armMat = new THREE.MeshLambertMaterial({ color: 0xd9c5b2 });
@@ -681,8 +610,8 @@ function updateArmAnimation(delta) {
   }
 }
 
-// 方塊與碰撞世界
-const voxelMap = new Map();
+// --- 方塊世界與 InstancedMesh 高效渲染管理器 (60 FPS 極速優化) ---
+const voxelMap = new Map(); // key -> { typeKey, x, y, z }
 const blockHitsMap = new Map();
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 
@@ -694,11 +623,106 @@ function hasBlock(x, y, z) {
   return voxelMap.has(getVoxelKey(x, y, z));
 }
 
-// 取得精確地面高度 (通用)
+function isTransparentBlock(typeKey) {
+  return BLOCKS[typeKey]?.transparent || typeKey === 'GLASS' || typeKey === 'LEAVES' || typeKey === 'CHERRY_LEAVES';
+}
+
+function isBlockOccluded(x, y, z) {
+  const neighbors = [
+    [x + 1, y, z], [x - 1, y, z],
+    [x, y + 1, z], [x, y - 1, z],
+    [x, y, z + 1], [x, y, z - 1]
+  ];
+  for (let i = 0; i < neighbors.length; i++) {
+    const [nx, ny, nz] = neighbors[i];
+    const nKey = getVoxelKey(nx, ny, nz);
+    const nVal = voxelMap.get(nKey);
+    if (!nVal || isTransparentBlock(nVal.typeKey)) {
+      return false; // 鄰近有空氣或透明方塊，此面需渲染！
+    }
+  }
+  return true; // 六面全被遮擋，完全免渲染！
+}
+
+class BlockRenderManager {
+  constructor(scene) {
+    this.scene = scene;
+    this.instancedMeshes = new Map(); // typeKey -> THREE.InstancedMesh
+    this.dummy = new THREE.Object3D();
+    this.isDirty = false;
+  }
+
+  markDirty() {
+    this.isDirty = true;
+  }
+
+  update() {
+    if (!this.isDirty) return;
+    this.isDirty = false;
+
+    // 1. 依 typeKey 分組非遮擋方塊
+    const typeGroups = new Map();
+    voxelMap.forEach((val, key) => {
+      const { x, y, z, typeKey } = val;
+      if (isBlockOccluded(x, y, z)) return; // 跳過地底內部無光方塊
+
+      if (!typeGroups.has(typeKey)) {
+        typeGroups.set(typeKey, []);
+      }
+      typeGroups.get(typeKey).push({ x, y, z, key });
+    });
+
+    // 2. 更新或新建 InstancedMesh
+    typeGroups.forEach((blockList, typeKey) => {
+      let imesh = this.instancedMeshes.get(typeKey);
+      const count = blockList.length;
+
+      if (!imesh || imesh.instanceMatrix.array.length / 16 < count) {
+        if (imesh) {
+          this.scene.remove(imesh);
+          imesh.geometry.dispose();
+        }
+        const capacity = Math.max(count + 2000, 8000);
+        const materials = getBlockMaterials(typeKey);
+        imesh = new THREE.InstancedMesh(boxGeometry, materials, capacity);
+        imesh.castShadow = true;
+        imesh.receiveShadow = true;
+        imesh.userData = { isVoxelTerrain: true, typeKey };
+        this.scene.add(imesh);
+        this.instancedMeshes.set(typeKey, imesh);
+      }
+
+      imesh.count = count;
+      for (let i = 0; i < count; i++) {
+        const b = blockList[i];
+        this.dummy.position.set(b.x + 0.5, b.y + 0.5, b.z + 0.5);
+        this.dummy.updateMatrix();
+        imesh.setMatrixAt(i, this.dummy.matrix);
+      }
+      imesh.instanceMatrix.needsUpdate = true;
+    });
+
+    // 3. 清空無方塊的類型
+    this.instancedMeshes.forEach((imesh, typeKey) => {
+      if (!typeGroups.has(typeKey)) {
+        imesh.count = 0;
+        imesh.instanceMatrix.needsUpdate = true;
+      }
+    });
+  }
+
+  getRenderableMeshes() {
+    return Array.from(this.instancedMeshes.values()).filter(m => m.count > 0);
+  }
+}
+
+const blockRenderManager = new BlockRenderManager(scene);
+
+// 取得精確地面高度
 function getGroundHeight(x, z) {
   const bx = Math.floor(x);
   const bz = Math.floor(z);
-  for (let y = 20; y >= 0; y--) {
+  for (let y = 25; y >= 0; y--) {
     if (hasBlock(bx, y, bz)) {
       return y + 1;
     }
@@ -706,11 +730,10 @@ function getGroundHeight(x, z) {
   return 1;
 }
 
-// 取得玩家腳正下方精確地面高度（僅採計腳底以下的方塊，絕不採計頭頂與身旁樹葉，切實防飛樹頂！）
 function getGroundHeightAtFeet(x, feetY, z) {
   const bx = Math.floor(x);
   const bz = Math.floor(z);
-  const maxCheckY = Math.min(20, Math.floor(feetY + 0.3));
+  const maxCheckY = Math.min(25, Math.floor(feetY + 0.3));
   for (let y = maxCheckY; y >= 0; y--) {
     if (hasBlock(bx, y, bz)) {
       if (y + 1 <= feetY + 0.3) {
@@ -721,19 +744,36 @@ function getGroundHeightAtFeet(x, feetY, z) {
   return 1;
 }
 
-function addBlock(x, y, z, blockTypeKey) {
-  const key = getVoxelKey(x, y, z);
+function addBlock(x, y, z, blockTypeKey, triggerRenderUpdate = true) {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const iz = Math.floor(z);
+  const key = getVoxelKey(ix, iy, iz);
   if (voxelMap.has(key)) return;
 
-  const mat = getBlockMaterials(blockTypeKey);
-  const mesh = new THREE.Mesh(boxGeometry, mat);
-  mesh.position.set(Math.floor(x) + 0.5, Math.floor(y) + 0.5, Math.floor(z) + 0.5);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  mesh.userData = { key, typeKey: blockTypeKey };
+  voxelMap.set(key, { typeKey: blockTypeKey, x: ix, y: iy, z: iz });
+  if (triggerRenderUpdate) {
+    blockRenderManager.markDirty();
+  }
+}
 
-  scene.add(mesh);
-  voxelMap.set(key, { mesh, typeKey: blockTypeKey });
+function removeBlock(x, y, z, spawnDebris = true) {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const iz = Math.floor(z);
+  const key = getVoxelKey(ix, iy, iz);
+  if (!voxelMap.has(key)) return;
+
+  const { typeKey } = voxelMap.get(key);
+  const blockPos = new THREE.Vector3(ix + 0.5, iy + 0.5, iz + 0.5);
+  if (spawnDebris) {
+    spawnBlockDebris(blockPos, BLOCKS[typeKey]?.color || 0x888888);
+    spawnDroppedItem(blockPos, typeKey);
+  }
+
+  voxelMap.delete(key);
+  blockHitsMap.delete(key);
+  blockRenderManager.markDirty();
 }
 
 // 🎁 掉落物管理 (Dropped Items System)
@@ -778,11 +818,9 @@ function updateDroppedItems(delta, playerPos) {
     const item = droppedItems[i];
     item.time += delta * 3;
 
-    // 旋轉與漂浮
     item.mesh.rotation.y += delta * 2;
     item.mesh.position.y += Math.sin(item.time) * 0.003;
 
-    // 玩家靠近自動撿起掉落物 (Distance < 1.6)
     const dist = playerPos.distanceTo(item.mesh.position);
     if (dist < 1.6) {
       sounds.playItemPickup();
@@ -793,24 +831,7 @@ function updateDroppedItems(delta, playerPos) {
   }
 }
 
-function removeBlock(x, y, z, spawnDebris = true) {
-  const key = getVoxelKey(x, y, z);
-  if (!voxelMap.has(key)) return;
-
-  const { mesh, typeKey } = voxelMap.get(key);
-  if (spawnDebris) {
-    spawnBlockDebris(mesh.position, BLOCKS[typeKey]?.color || 0x888888);
-    // 🎁 產生掉落物！
-    spawnDroppedItem(mesh.position, typeKey);
-  }
-
-  scene.remove(mesh);
-  if (mesh.geometry) mesh.geometry.dispose();
-  voxelMap.delete(key);
-  blockHitsMap.delete(key);
-}
-
-// 挖掘打擊邏輯（生存模式需要 3~5 次，創造模式 1 次秒破）
+// 挖掘打擊邏輯
 function hitBlock(x, y, z) {
   const key = getVoxelKey(x, y, z);
   if (!voxelMap.has(key)) return;
@@ -821,7 +842,7 @@ function hitBlock(x, y, z) {
     return;
   }
 
-  const { mesh, typeKey } = voxelMap.get(key);
+  const { typeKey } = voxelMap.get(key);
   const blockConfig = BLOCKS[typeKey];
   const requiredHits = blockConfig?.requiredHits || 3;
 
@@ -829,12 +850,7 @@ function hitBlock(x, y, z) {
   blockHitsMap.set(key, currentHits);
 
   sounds.playMiningHit();
-  spawnBlockDebris(mesh.position, blockConfig?.color || 0x888888);
-
-  mesh.scale.set(0.9, 0.9, 0.9);
-  setTimeout(() => {
-    if (voxelMap.has(key)) mesh.scale.set(1, 1, 1);
-  }, 80);
+  spawnBlockDebris(new THREE.Vector3(Math.floor(x) + 0.5, Math.floor(y) + 0.5, Math.floor(z) + 0.5), blockConfig?.color || 0x888888);
 
   if (currentHits >= requiredHits) {
     sounds.playBreak();
@@ -846,8 +862,7 @@ function hitBlock(x, y, z) {
 function saveWorldToStorage() {
   const data = [];
   voxelMap.forEach((val, key) => {
-    const [x, y, z] = key.split(',').map(Number);
-    data.push({ x, y, z, typeKey: val.typeKey });
+    data.push({ x: val.x, y: val.y, z: val.z, typeKey: val.typeKey });
   });
   localStorage.setItem('MC_WORLD_SAVE', JSON.stringify(data));
   alert('💾 世界存檔已成功儲存！下次打開可直接載入。');
@@ -860,12 +875,12 @@ function loadWorldFromStorage() {
     return false;
   }
   const data = JSON.parse(saved);
-  voxelMap.forEach((val) => scene.remove(val.mesh));
   voxelMap.clear();
 
   data.forEach(item => {
-    addBlock(item.x, item.y, item.z, item.typeKey);
+    addBlock(item.x, item.y, item.z, item.typeKey, false);
   });
+  blockRenderManager.markDirty();
   alert('📂 成功載入世界存檔！');
   return true;
 }
@@ -913,13 +928,11 @@ function triggerTNT(x, y, z) {
   const key = getVoxelKey(x, y, z);
   if (!voxelMap.has(key)) return;
 
-  const { mesh } = voxelMap.get(key);
   sounds.playTNTFuse();
 
   let flashCount = 0;
   const fuseInterval = setInterval(() => {
     flashCount++;
-    mesh.scale.setScalar(flashCount % 2 === 0 ? 1.15 : 1.0);
     if (flashCount >= 8) {
       clearInterval(fuseInterval);
       explodeTNT(x, y, z);
@@ -950,7 +963,7 @@ function explodeTNT(centerX, centerY, centerZ) {
   }
 }
 
-// 🐑 精緻方塊小羊（踏實行走、不穿牆、有清晰五官）
+// 🐑 精緻方塊小羊
 class VoxelSheep {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1025,17 +1038,15 @@ class VoxelSheep {
       this.changeDirectionTimer = 3 + Math.random() * 4;
     }
 
-    // 防穿牆與防漂浮行走邏輯
     const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.7);
     const targetY = getGroundHeight(nextPos.x, nextPos.z);
 
-    // 防穿牆：如果前方有高於1格的牆壁則轉向
     if (targetY - this.group.position.y <= 1.1) {
       this.group.position.x = nextPos.x;
       this.group.position.z = nextPos.z;
       this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
     } else {
-      this.changeDirectionTimer = 0; // 碰牆立轉向
+      this.changeDirectionTimer = 0;
     }
 
     this.legs.forEach((leg, idx) => {
@@ -1045,7 +1056,7 @@ class VoxelSheep {
   }
 }
 
-// 🧟 殭屍 Mob（清晰五官面孔、防穿牆、攻擊不到跳高玩家）
+// 🧟 殭屍 Mob
 class VoxelZombie {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1053,14 +1064,13 @@ class VoxelZombie {
     const skinMat = new THREE.MeshLambertMaterial({ color: 0x48793b });
     const shirtMat = new THREE.MeshLambertMaterial({ color: 0x3b8595 });
     const pantsMat = new THREE.MeshLambertMaterial({ color: 0x223652 });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2222 }); // 經典紅色發光眼神
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
     const mouthMat = new THREE.MeshBasicMaterial({ color: 0x152e12 });
 
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), shirtMat);
     body.position.y = 1.2;
     this.group.add(body);
 
-    // 殭屍頭部與五官面孔
     this.head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), skinMat);
     this.head.position.y = 2.1;
 
@@ -1118,7 +1128,6 @@ class VoxelZombie {
     this.attackCooldown -= delta;
     const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
 
-    // 高度差判定：如果玩家在腳下墊高了 2 格以上，殭屍摸不到玩家！
     const heightDiff = playerPos.y - 1.6 - this.group.position.y;
     dir.y = 0;
     const dist = dir.length();
@@ -1129,7 +1138,6 @@ class VoxelZombie {
       const nextPos = this.group.position.clone().addScaledVector(dir, delta * 1.5);
       const targetY = getGroundHeight(nextPos.x, nextPos.z);
 
-      // 防穿牆：前方有無法躍過的牆壁則無法前進
       if (targetY - this.group.position.y <= 1.1) {
         this.group.position.x = nextPos.x;
         this.group.position.z = nextPos.z;
@@ -1142,7 +1150,6 @@ class VoxelZombie {
       this.legR.rotation.x = -Math.sin(t) * 0.5;
     }
 
-    // 只有在垂直距離 < 1.5 且水平近距離時才能攻擊到玩家！
     if (dist <= 1.3 && Math.abs(heightDiff) < 1.5 && this.attackCooldown <= 0) {
       this.attackCooldown = 1.5;
       hurtPlayerCb();
@@ -1150,7 +1157,7 @@ class VoxelZombie {
   }
 }
 
-// 🦔 1.20.6 犰狳 (Armadillo - 遇生物或玩家靠近會縮成防護球體)
+// 🦔 1.20.6 犰狳 (Armadillo)
 class VoxelArmadillo {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1207,7 +1214,6 @@ class VoxelArmadillo {
   update(delta, time, playerPos) {
     const distToPlayer = this.group.position.distanceTo(playerPos);
 
-    // 1.20.6 特色：當玩家靠近 3.5 格內時，犰狳會縮成防護球體！
     if (distToPlayer < 3.5 && !this.isRolledUp) {
       this.isRolledUp = true;
       this.head.scale.set(0.1, 0.1, 0.1);
@@ -1244,12 +1250,12 @@ class VoxelArmadillo {
   }
 }
 
-// 🐺 1.20.6 可馴服狼 & 狼鎧甲 Companion Wolf
+// 🐺 1.20.6 可馴服狼 & 狼鎧甲
 class VoxelWolf {
   constructor(x, z) {
     this.group = new THREE.Group();
     this.skinMat = new THREE.MeshLambertMaterial({ color: 0xd3d3d3 });
-    this.armorMat = new THREE.MeshLambertMaterial({ color: 0x9c6644 }); // 1.20.6 狼鎧甲
+    this.armorMat = new THREE.MeshLambertMaterial({ color: 0x9c6644 });
     this.collarMat = new THREE.MeshBasicMaterial({ color: 0xe63946 });
 
     this.body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 1.0), this.skinMat);
@@ -1309,7 +1315,7 @@ class VoxelWolf {
   tame() {
     this.isTamed = true;
     this.collar.visible = true;
-    this.body.material = this.armorMat; // 穿上 1.20.6 狼鎧甲！
+    this.body.material = this.armorMat;
     sounds.playWolfBark();
   }
 
@@ -1317,7 +1323,6 @@ class VoxelWolf {
     this.attackCooldown -= delta;
 
     if (this.isTamed) {
-      // 尋找最近的殭屍主動幫玩家戰鬥！
       let nearestZombie = null;
       let minDist = 15;
       zombies.forEach(zombie => {
@@ -1346,7 +1351,6 @@ class VoxelWolf {
           }
         }
       } else {
-        // 跟隨玩家
         const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
         dir.y = 0;
         const dist = dir.length();
@@ -1360,7 +1364,7 @@ class VoxelWolf {
   }
 }
 
-// 240x240 (5倍擴大) 1.20.6 世界地圖 (含櫻花樹林區與可疑沙子)
+// 240x240 (5倍擴大) 1.20.6 世界地圖
 function generateInitialWorld() {
   const WORLD_SIZE = 240;
   const HALF_SIZE = WORLD_SIZE / 2;
@@ -1369,33 +1373,32 @@ function generateInitialWorld() {
     for (let z = -HALF_SIZE; z < HALF_SIZE; z++) {
       const height = Math.floor(Math.sin(x * 0.15) * Math.cos(z * 0.15) * 2.2) + 3;
       for (let y = 0; y < height; y++) {
-        if (y === 0) addBlock(x, y, z, 'STONE');
-        else addBlock(x, y, z, 'DIRT');
+        if (y === 0) addBlock(x, y, z, 'STONE', false);
+        else addBlock(x, y, z, 'DIRT', false);
       }
 
-      // 1.20.6 櫻花樹林區 (Cherry Blossom Biome)
       if (x > 0 && z > 0) {
-        addBlock(x, height, z, 'GRASS');
+        addBlock(x, height, z, 'GRASS', false);
         if (Math.random() < 0.035 && Math.abs(x) > 3) {
           generateCherryTree(x, height + 1, z);
         }
       } else if (x < -10 && z < -10) {
-        // 1.20.6 考古沙區 (Archaeology Suspicious Sand Area)
-        addBlock(x, height, z, Math.random() < 0.3 ? 'SUSPICIOUS_SAND' : 'DIRT');
+        addBlock(x, height, z, Math.random() < 0.3 ? 'SUSPICIOUS_SAND' : 'DIRT', false);
       } else {
-        addBlock(x, height, z, 'GRASS');
+        addBlock(x, height, z, 'GRASS', false);
         if (Math.random() < 0.015 && Math.abs(x) > 3) {
           generateTree(x, height + 1, z);
         }
       }
     }
   }
+  blockRenderManager.markDirty();
 }
 
 function generateTree(trX, trY, trZ) {
   const treeHeight = 4 + Math.floor(Math.random() * 2);
   for (let i = 0; i < treeHeight; i++) {
-    addBlock(trX, trY + i, trZ, 'WOOD');
+    addBlock(trX, trY + i, trZ, 'WOOD', false);
   }
   const leafBaseY = trY + treeHeight - 1;
   for (let lx = -2; lx <= 2; lx++) {
@@ -1403,17 +1406,16 @@ function generateTree(trX, trY, trZ) {
       for (let ly = 0; ly <= 2; ly++) {
         if (Math.abs(lx) === 2 && Math.abs(lz) === 2 && ly === 2) continue;
         if (lx === 0 && lz === 0 && ly < 2) continue;
-        addBlock(trX + lx, leafBaseY + ly, trZ + lz, 'LEAVES');
+        addBlock(trX + lx, leafBaseY + ly, trZ + lz, 'LEAVES', false);
       }
     }
   }
 }
 
-// 🌸 1.20.6 櫻花樹生成器
 function generateCherryTree(trX, trY, trZ) {
   const treeHeight = 5 + Math.floor(Math.random() * 2);
   for (let i = 0; i < treeHeight; i++) {
-    addBlock(trX, trY + i, trZ, 'CHERRY_LOG');
+    addBlock(trX, trY + i, trZ, 'CHERRY_LOG', false);
   }
   const leafBaseY = trY + treeHeight - 1;
   for (let lx = -2; lx <= 2; lx++) {
@@ -1421,7 +1423,7 @@ function generateCherryTree(trX, trY, trZ) {
       for (let ly = 0; ly <= 2; ly++) {
         if (Math.abs(lx) === 2 && Math.abs(lz) === 2 && ly === 2) continue;
         if (lx === 0 && lz === 0 && ly < 2) continue;
-        addBlock(trX + lx, leafBaseY + ly, trZ + lz, 'CHERRY_LEAVES');
+        addBlock(trX + lx, leafBaseY + ly, trZ + lz, 'CHERRY_LEAVES', false);
       }
     }
   }
@@ -1479,16 +1481,28 @@ function updateRaycaster() {
     return null;
   }
   raycaster.setFromCamera(centerVector, camera);
-  const intersects = raycaster.intersectObjects(scene.children, true);
-  const validHits = intersects.filter(hit => hit.object !== selectionBox && (hit.object.userData.key || hit.object.parent));
 
-  if (validHits.length > 0 && validHits[0].distance < 8) {
-    const hit = validHits[0];
-    if (hit.object.userData.key) {
-      selectionBox.position.copy(hit.object.position);
-      selectionBox.visible = true;
-    }
-    return hit;
+  // 極速 Raycast 檢測：只針對 InstancedMesh 進行測試
+  const targets = blockRenderManager.getRenderableMeshes();
+  const intersects = raycaster.intersectObjects(targets, false);
+
+  if (intersects.length > 0 && intersects[0].distance < 8) {
+    const hit = intersects[0];
+    const hitPoint = hit.point.clone().sub(hit.face.normal.clone().multiplyScalar(0.5));
+    const vx = Math.floor(hitPoint.x);
+    const vy = Math.floor(hitPoint.y);
+    const vz = Math.floor(hitPoint.z);
+
+    selectionBox.position.set(vx + 0.5, vy + 0.5, vz + 0.5);
+    selectionBox.visible = true;
+
+    return {
+      object: hit.object,
+      face: hit.face,
+      distance: hit.distance,
+      vx, vy, vz,
+      typeKey: hit.object.userData.typeKey
+    };
   } else {
     selectionBox.visible = false;
     return null;
@@ -1519,13 +1533,12 @@ function updateModeDisplay() {
   }
 }
 
-// 玩家物理（最大跳躍 1 格高、實體防穿牆）
+// 玩家物理
 let playerHealth = 10;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 let moveUp = false, moveDown = false;
 let canJump = false;
 let velocity = new THREE.Vector3();
-let direction = new THREE.Vector3();
 let prevTime = performance.now();
 let dayTime = 0.25;
 let isFastTime = false;
@@ -1546,6 +1559,7 @@ function hurtPlayer() {
 
 function updateHealthBar() {
   const heartContainer = document.getElementById('heart-container');
+  if (!heartContainer) return;
   heartContainer.innerHTML = '';
   for (let i = 0; i < 10; i++) {
     const span = document.createElement('span');
@@ -1561,6 +1575,7 @@ const closeInvBtn = document.getElementById('close-inv-btn');
 const invGrid = document.getElementById('inventory-grid');
 
 function initInventoryUI() {
+  if (!invGrid) return;
   invGrid.innerHTML = '';
   Object.keys(BLOCKS).forEach(key => {
     const block = BLOCKS[key];
@@ -1594,6 +1609,7 @@ function initInventoryUI() {
 }
 
 function toggleInventory() {
+  if (!invModal) return;
   if (invModal.classList.contains('hidden')) {
     controls.unlock();
     invModal.classList.remove('hidden');
@@ -1604,10 +1620,12 @@ function toggleInventory() {
   }
 }
 
-closeInvBtn.addEventListener('click', () => {
-  invModal.classList.add('hidden');
-  controls.lock();
-});
+if (closeInvBtn) {
+  closeInvBtn.addEventListener('click', () => {
+    if (invModal) invModal.classList.add('hidden');
+    controls.lock();
+  });
+}
 
 // 按鍵監聽
 document.addEventListener('keydown', (event) => {
@@ -1616,7 +1634,6 @@ document.addEventListener('keydown', (event) => {
     return;
   }
 
-  // 旁觀模式 (Spectator) 切換：按 Backspace (刪除鍵) 鍵
   if (event.code === 'Backspace') {
     event.preventDefault();
     currentMode = (currentMode === GAME_MODES.SPECTATOR) ? GAME_MODES.SURVIVAL : GAME_MODES.SPECTATOR;
@@ -1624,7 +1641,6 @@ document.addEventListener('keydown', (event) => {
     return;
   }
 
-  // 創造模式 (Creative) 切換：按 Shift 鍵
   if (event.key === 'Shift' || event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
     if (controls.isLocked) {
       currentMode = (currentMode === GAME_MODES.CREATIVE) ? GAME_MODES.SURVIVAL : GAME_MODES.CREATIVE;
@@ -1646,7 +1662,6 @@ document.addEventListener('keydown', (event) => {
     case 'Space':
       moveUp = true;
       if (canJump && currentMode !== GAME_MODES.SPECTATOR) {
-        // 精確限制最大跳躍高度恰好為 1 格高！(v = sqrt(2 * g * h) = sqrt(2 * 25 * 1.0) ≈ 7.07)
         velocity.y = 7.07;
         sounds.playJump();
         canJump = false;
@@ -1692,108 +1707,91 @@ document.addEventListener('wheel', (e) => {
 // 滑鼠點擊
 document.addEventListener('mousedown', (e) => {
   if (!controls.isLocked) return;
-  if (currentMode === GAME_MODES.SPECTATOR) return; // 旁觀模式無法互動或破壞/放置
+  if (currentMode === GAME_MODES.SPECTATOR) return;
 
   swingArm();
 
+  // 生物點擊打擊測試
+  raycaster.setFromCamera(centerVector, camera);
+  const mobIntersects = raycaster.intersectObjects(scene.children, true);
+  if (mobIntersects.length > 0 && mobIntersects[0].distance < 8) {
+    let parentObj = mobIntersects[0].object;
+    while (parentObj && parentObj.parent && parentObj.parent !== scene) {
+      parentObj = parentObj.parent;
+    }
+
+    const targetZombieIdx = zombieList.findIndex(z => z.group === parentObj);
+    if (targetZombieIdx !== -1 && e.button === 0) {
+      const isDead = zombieList[targetZombieIdx].hit();
+      if (isDead) zombieList.splice(targetZombieIdx, 1);
+      return;
+    }
+
+    const targetSheepIdx = sheepList.findIndex(s => s.group === parentObj);
+    if (targetSheepIdx !== -1 && e.button === 0) {
+      const isDead = sheepList[targetSheepIdx].hit();
+      if (isDead) sheepList.splice(targetSheepIdx, 1);
+      return;
+    }
+
+    const targetArmadilloIdx = armadilloList.findIndex(a => a.group === parentObj);
+    if (targetArmadilloIdx !== -1 && e.button === 0) {
+      const isDead = armadilloList[targetArmadilloIdx].hit();
+      if (isDead) armadilloList.splice(targetArmadilloIdx, 1);
+      return;
+    }
+
+    const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
+    if (targetWolfIdx !== -1 && e.button === 0) {
+      const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
+      if (selectedBlock === BLOCKS.BONE_ITEM && !wolfList[targetWolfIdx].isTamed) {
+        wolfList[targetWolfIdx].tame();
+        alert('🐺 成功馴服狼！狼已裝備 1.20.6 狼鎧甲 (Wolf Armor)，將護衛玩家並攻擊殭屍！');
+        return;
+      }
+      const isDead = wolfList[targetWolfIdx].hit();
+      if (isDead) wolfList.splice(targetWolfIdx, 1);
+      return;
+    }
+  }
+
+  // 方塊點擊與放置測試
   const hit = updateRaycaster();
   if (!hit) return;
 
-  let parentObj = hit.object;
-  while (parentObj && parentObj.parent && parentObj.parent !== scene) {
-    parentObj = parentObj.parent;
-  }
+  const { vx, vy, vz, typeKey } = hit;
 
-  // 擊打殭屍
-  const targetZombieIdx = zombieList.findIndex(z => z.group === parentObj);
-  if (targetZombieIdx !== -1 && e.button === 0) {
-    const isDead = zombieList[targetZombieIdx].hit();
-    if (isDead) zombieList.splice(targetZombieIdx, 1);
-    return;
-  }
-
-  // 擊打羊
-  const targetSheepIdx = sheepList.findIndex(s => s.group === parentObj);
-  if (targetSheepIdx !== -1 && e.button === 0) {
-    const isDead = sheepList[targetSheepIdx].hit();
-    if (isDead) sheepList.splice(targetSheepIdx, 1);
-    return;
-  }
-
-  // 擊打犰狳
-  const targetArmadilloIdx = armadilloList.findIndex(a => a.group === parentObj);
-  if (targetArmadilloIdx !== -1 && e.button === 0) {
-    const isDead = armadilloList[targetArmadilloIdx].hit();
-    if (isDead) armadilloList.splice(targetArmadilloIdx, 1);
-    return;
-  }
-
-  // 擊打 / 餵食狼
-  const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
-  if (targetWolfIdx !== -1 && e.button === 0) {
+  if (e.button === 0) {
+    if (typeKey === 'TNT') triggerTNT(vx, vy, vz);
+    else hitBlock(vx, vy, vz);
+  } else if (e.button === 2) {
     const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
-    if (selectedBlock === BLOCKS.BONE_ITEM && !wolfList[targetWolfIdx].isTamed) {
-      wolfList[targetWolfIdx].tame();
-      alert('🐺 成功馴服狼！狼已裝備 1.20.6 狼鎧甲 (Wolf Armor)，將護衛玩家並攻擊殭屍！');
+    if (selectedBlock === BLOCKS.BRUSH_TOOL && typeKey === 'SUSPICIOUS_SAND') {
+      sounds.playBrushSound();
+      spawnBlockDebris(new THREE.Vector3(vx + 0.5, vy + 0.5, vz + 0.5), 0xe0c068);
+      const key = getVoxelKey(vx, vy, vz);
+      const brushCount = (blockHitsMap.get(key) || 0) + 1;
+      blockHitsMap.set(key, brushCount);
+      if (brushCount >= 3) {
+        removeBlock(vx, vy, vz, false);
+        addBlock(vx, vy, vz, 'DIRT');
+        spawnDroppedItem(new THREE.Vector3(vx + 0.5, vy + 0.5, vz + 0.5), 'DIAMOND');
+        alert('🏺 1.20.6 考古挖掘成功！發現古代陶罐與鑽石寶物！');
+      }
       return;
     }
-    const isDead = wolfList[targetWolfIdx].hit();
-    if (isDead) wolfList.splice(targetWolfIdx, 1);
-    return;
-  }
 
-  if (hit.object.position) {
-    const { position } = hit.object;
-    const vx = position.x - 0.5;
-    const vy = position.y - 0.5;
-    const vz = position.z - 0.5;
+    sounds.playPlace();
+    const normal = hit.face.normal;
+    const targetX = vx + Math.round(normal.x);
+    const targetY = vy + Math.round(normal.y);
+    const targetZ = vz + Math.round(normal.z);
 
-    if (e.button === 0) {
-      const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
-      // 1.20.6 拿骨頭餵狼並穿上狼鎧甲
-      if (selectedBlock === BLOCKS.BONE_ITEM) {
-        let parentObj = hit.object;
-        while (parentObj && parentObj.parent && parentObj.parent !== scene) {
-          parentObj = parentObj.parent;
-        }
-        const targetWolf = wolfList.find(w => w.group === parentObj);
-        if (targetWolf && !targetWolf.isTamed) {
-          targetWolf.tame();
-          alert('🐺 成功馴服狼！狼已裝備 1.20.6 狼鎧甲 (Wolf Armor)，將護衛玩家並攻擊殭屍！');
-          return;
-        }
-      }
+    const keys = Object.keys(BLOCKS);
+    const blockKey = keys.find(k => BLOCKS[k] === selectedBlock);
 
-      const typeKey = hit.object.userData.typeKey;
-      if (typeKey === 'TNT') triggerTNT(vx, vy, vz);
-      else hitBlock(vx, vy, vz);
-    } else if (e.button === 2) {
-      const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
-      // 1.20.6 使用考古刷刷「可疑的沙子」
-      if (selectedBlock === BLOCKS.BRUSH_TOOL && hit.object.userData.typeKey === 'SUSPICIOUS_SAND') {
-        sounds.playBrushSound();
-        spawnBlockDebris(hit.object.position, 0xe0c068);
-        const key = hit.object.userData.key;
-        const brushCount = (blockHitsMap.get(key) || 0) + 1;
-        blockHitsMap.set(key, brushCount);
-        if (brushCount >= 3) {
-          removeBlock(hit.object.position.x - 0.5, hit.object.position.y - 0.5, hit.object.position.z - 0.5, false);
-          addBlock(hit.object.position.x - 0.5, hit.object.position.y - 0.5, hit.object.position.z - 0.5, 'DIRT');
-          spawnDroppedItem(hit.object.position, 'DIAMOND');
-          alert('🏺 1.20.6 考古挖掘成功！發現古代陶罐與鑽石寶物！');
-        }
-        return;
-      }
-
-      sounds.playPlace();
-      const normal = hit.face.normal;
-      const targetPos = position.clone().add(normal);
-      const keys = Object.keys(BLOCKS);
-      const blockKey = keys.find(k => BLOCKS[k] === selectedBlock);
-
-      if (blockKey) {
-        addBlock(targetPos.x - 0.5, targetPos.y - 0.5, targetPos.z - 0.5, blockKey);
-      }
+    if (blockKey) {
+      addBlock(targetX, targetY, targetZ, blockKey);
     }
   }
 });
@@ -1807,6 +1805,7 @@ const selectedBlockInfo = document.getElementById('selected-block-info');
 const timeDisplay = document.getElementById('time-display');
 
 function initHotbarUI() {
+  if (!hotbarEl) return;
   hotbarEl.innerHTML = '';
   HOTBAR_BLOCKS.forEach((block, index) => {
     const slot = document.createElement('div');
@@ -1837,23 +1836,21 @@ function initHotbarUI() {
 
 function selectHotbarSlot(index) {
   selectedBlockIndex = index;
-  const slots = hotbarEl.querySelectorAll('.hotbar-slot');
-  slots.forEach((s, idx) => {
-    if (idx === index) s.classList.add('active');
-    else s.classList.remove('active');
-  });
+  if (hotbarEl) {
+    const slots = hotbarEl.querySelectorAll('.hotbar-slot');
+    slots.forEach((s, idx) => {
+      if (idx === index) s.classList.add('active');
+      else s.classList.remove('active');
+    });
+  }
   updateSelectedBlockText();
 }
 
 function updateSelectedBlockText() {
   const b = HOTBAR_BLOCKS[selectedBlockIndex];
-  if (b) {
-    blockNameDisplay.innerText = b.name;
-    selectedBlockInfo.innerText = b.name;
-  } else {
-    blockNameDisplay.innerText = '(空 Empty)';
-    selectedBlockInfo.innerText = '(空 Empty)';
-  }
+  const nameStr = b ? b.name : '(空 Empty)';
+  if (blockNameDisplay) blockNameDisplay.innerText = nameStr;
+  if (selectedBlockInfo) selectedBlockInfo.innerText = nameStr;
 }
 
 initHotbarUI();
@@ -1862,55 +1859,66 @@ const overlay = document.getElementById('overlay');
 const startBtn = document.getElementById('start-btn');
 const posDisplay = document.getElementById('pos-display');
 
-document.getElementById('save-world-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  saveWorldToStorage();
-});
-document.getElementById('load-world-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  loadWorldFromStorage();
-});
+const saveBtn = document.getElementById('save-world-btn');
+if (saveBtn) {
+  saveBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    saveWorldToStorage();
+  });
+}
+
+const loadBtn = document.getElementById('load-world-btn');
+if (loadBtn) {
+  loadBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    loadWorldFromStorage();
+  });
+}
 
 function enterGame() {
   sounds.init();
-  overlay.classList.add('hidden');
+  if (overlay) overlay.classList.add('hidden');
   try {
     controls.lock();
-  } catch (err) {
-    console.warn('Pointer lock request warning:', err);
-  }
+  } catch (err) {}
 }
 
-startBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  enterGame();
-});
-
-overlay.addEventListener('click', (e) => {
-  const saveBtn = document.getElementById('save-world-btn');
-  const loadBtn = document.getElementById('load-world-btn');
-  if (e.target !== saveBtn && e.target !== loadBtn) {
+if (startBtn) {
+  startBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
     enterGame();
-  }
-});
+  });
+}
+
+if (overlay) {
+  overlay.addEventListener('click', (e) => {
+    if (e.target !== saveBtn && e.target !== loadBtn) {
+      enterGame();
+    }
+  });
+}
 
 container.addEventListener('click', () => {
-  if (invModal.classList.contains('hidden')) {
-    overlay.classList.add('hidden');
+  if (invModal && invModal.classList.contains('hidden')) {
+    if (overlay) overlay.classList.add('hidden');
     try {
       controls.lock();
     } catch (err) {}
   }
 });
 
-controls.addEventListener('lock', () => overlay.classList.add('hidden'));
+controls.addEventListener('lock', () => {
+  if (overlay) overlay.classList.add('hidden');
+});
 controls.addEventListener('unlock', () => {
-  if (invModal.classList.contains('hidden')) overlay.classList.remove('hidden');
+  if (invModal && invModal.classList.contains('hidden')) {
+    if (overlay) overlay.classList.remove('hidden');
+  }
 });
 
-// 實體 AABB 碰撞檢查 (牆壁、1格高台階與樹幹實體檔牆)
+// 實體 AABB 碰撞檢查
 function checkPlayerCollision(newPos) {
-  if (currentMode === GAME_MODES.SPECTATOR) return false; // 旁觀模式穿牆 (noclip)
+  if (currentMode === GAME_MODES.SPECTATOR) return false;
   const px = newPos.x;
   const py = newPos.y;
   const pz = newPos.z;
@@ -1922,14 +1930,14 @@ function checkPlayerCollision(newPos) {
   const maxX = Math.floor(px + radius);
   const minZ = Math.floor(pz - radius);
   const maxZ = Math.floor(pz + radius);
-  const minY = Math.floor(feetY + 0.2); // 膝蓋高度以上判定為實體牆壁或台階
+  const minY = Math.floor(feetY + 0.2);
   const maxY = Math.floor(headY);
 
   for (let bx = minX; bx <= maxX; bx++) {
     for (let bz = minZ; bz <= maxZ; bz++) {
       for (let by = minY; by <= maxY; by++) {
         if (hasBlock(bx, by, bz)) {
-          return true; // 碰到樹幹、樹葉或台階牆壁，阻擋橫向移動！
+          return true;
         }
       }
     }
@@ -1941,7 +1949,9 @@ function checkPlayerCollision(newPos) {
 function animate() {
   requestAnimationFrame(animate);
 
-  // 需求 3：按 ESC 釋放視角 / 開啟選單遮罩時，遊戲完全暫停 (生物、時間、物理皆停止)
+  // 靜態渲染管理器更新 (60 FPS 極速核心)
+  blockRenderManager.update();
+
   if (!controls.isLocked) {
     renderer.render(scene, camera);
     return;
@@ -1960,7 +1970,9 @@ function animate() {
 
   const hours = Math.floor(dayTime * 24);
   const minutes = Math.floor((dayTime * 24 % 1) * 60);
-  timeDisplay.innerText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  if (timeDisplay) {
+    timeDisplay.innerText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
 
   // 生物與掉落物更新
   sheepList.forEach(sheep => sheep.update(delta, performance.now() / 1000));
@@ -1972,7 +1984,6 @@ function animate() {
 
   updateRaycaster();
 
-  // 需求 2：計算攝影機視角水平前進向量 (W 前進方向 100% 精確對齊視角面向)
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir);
   camDir.y = 0;
@@ -1989,7 +2000,6 @@ function animate() {
   if (moveVec.lengthSq() > 0) moveVec.normalize();
 
   if (currentMode === GAME_MODES.SPECTATOR) {
-    // 👻 旁觀模式：自由穿牆飛行 (Noclip Fly)
     velocity.set(0, 0, 0);
     const flySpeed = 15.0 * delta;
 
@@ -2005,7 +2015,6 @@ function animate() {
     if (moveDown) camera.position.y -= flySpeed;
 
   } else if (currentMode === GAME_MODES.CREATIVE) {
-    // ⚡ 創造模式：支援自由飛行與無敵
     const flySpeed = (isFastTime ? 12.0 : 7.0) * delta;
     if (moveVec.lengthSq() > 0) {
       const oldPos = camera.position.clone();
@@ -2035,13 +2044,11 @@ function animate() {
     }
 
   } else {
-    // 🟢 生存模式：取消自動踏台階 (1格高台階必須跳躍才能過去)、對齊視角前進、防飛樹頂
-    velocity.y -= 25.0 * delta; // 重力
+    velocity.y -= 25.0 * delta;
 
     const moveSpeed = (isFastTime ? 10.0 : 5.5) * delta;
     const oldPos = camera.position.clone();
 
-    // 依視角方向分步前進碰撞 (遇到 1 格高台階或樹幹時，會撞牆擋住，需按 Space 跳躍)
     if (moveVec.lengthSq() > 0) {
       camera.position.x += moveVec.x * moveSpeed;
       if (checkPlayerCollision(camera.position)) {
@@ -2054,7 +2061,6 @@ function animate() {
       }
     }
 
-    // Y 軸重力與腳底地面物理 (需求 4：絕不判定頭頂樹葉為地面，切實防飛樹頂)
     camera.position.y += velocity.y * delta;
     const playerFeetY = camera.position.y - 1.6;
     const targetGroundY = getGroundHeightAtFeet(camera.position.x, playerFeetY, camera.position.z) + 1.6;
@@ -2072,7 +2078,9 @@ function animate() {
     }
   }
 
-  posDisplay.innerText = `X: ${Math.floor(camera.position.x)}, Y: ${Math.floor(camera.position.y - 1.6)}, Z: ${Math.floor(camera.position.z)}`;
+  if (posDisplay) {
+    posDisplay.innerText = `X: ${Math.floor(camera.position.x)}, Y: ${Math.floor(camera.position.y - 1.6)}, Z: ${Math.floor(camera.position.z)}`;
+  }
 
   renderer.render(scene, camera);
 }
