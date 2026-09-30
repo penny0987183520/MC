@@ -795,9 +795,46 @@ function removeBlock(x, y, z, spawnDebris = true) {
   blockRenderManager.markDirty();
 }
 
-// 🎁 掉落物管理 System
+// 🎁 掉落物與愛心粒子 System
 const droppedItems = [];
 const itemGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+const activeHeartParticles = [];
+
+function spawnHeartParticles(pos) {
+  for (let i = 0; i < 5; i++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    ctx.font = '24px sans-serif';
+    ctx.fillText('❤️', 2, 24);
+    const texture = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(0.6, 0.6, 0.6);
+    sprite.position.copy(pos).add(new THREE.Vector3(
+      (Math.random() - 0.5) * 0.6,
+      0.8 + Math.random() * 0.4,
+      (Math.random() - 0.5) * 0.6
+    ));
+    scene.add(sprite);
+    activeHeartParticles.push({ sprite, life: 1.2 });
+  }
+}
+
+function updateHeartParticles(delta) {
+  for (let i = activeHeartParticles.length - 1; i >= 0; i--) {
+    const hp = activeHeartParticles[i];
+    hp.life -= delta;
+    hp.sprite.position.y += delta * 0.8;
+    hp.sprite.material.opacity = Math.max(0, hp.life / 1.2);
+    if (hp.life <= 0) {
+      scene.remove(hp.sprite);
+      hp.sprite.material.dispose();
+      activeHeartParticles.splice(i, 1);
+    }
+  }
+}
 
 function spawnDroppedItem(pos, typeKey, count = 1) {
   for (let c = 0; c < count; c++) {
@@ -985,7 +1022,7 @@ function explodeTNT(centerX, centerY, centerZ) {
   }
 }
 
-// 🐑 精緻方塊小羊 (掉落隨機 1~3 生羊肉)
+// 🐑 精緻方塊小羊
 class VoxelSheep {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1052,7 +1089,9 @@ class VoxelSheep {
     return false;
   }
 
-  update(delta, time) {
+  update(delta, time, playerPos) {
+    if (this.group.position.distanceTo(playerPos) > 60) return; // 離玩家太遠則不處理腿部動畫，保證 60 FPS
+
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
       const angle = Math.random() * Math.PI * 2;
@@ -1079,7 +1118,7 @@ class VoxelSheep {
   }
 }
 
-// 🐷 方塊小豬 (掉落隨機 1~3 生豬肉)
+// 🐷 方塊小豬
 class VoxelPig {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1138,7 +1177,9 @@ class VoxelPig {
     return false;
   }
 
-  update(delta, time) {
+  update(delta, time, playerPos) {
+    if (this.group.position.distanceTo(playerPos) > 60) return;
+
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
       const angle = Math.random() * Math.PI * 2;
@@ -1164,7 +1205,7 @@ class VoxelPig {
   }
 }
 
-// 🐮 方塊乳牛 (掉落隨機 1~3 生牛肉)
+// 🐮 方塊乳牛
 class VoxelCow {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1223,7 +1264,9 @@ class VoxelCow {
     return false;
   }
 
-  update(delta, time) {
+  update(delta, time, playerPos) {
+    if (this.group.position.distanceTo(playerPos) > 60) return;
+
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
       const angle = Math.random() * Math.PI * 2;
@@ -1249,7 +1292,7 @@ class VoxelCow {
   }
 }
 
-// 🐔 方塊小雞 (掉落隨機 1~2 生雞肉)
+// 🐔 方塊小雞
 class VoxelChicken {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1305,7 +1348,9 @@ class VoxelChicken {
     return false;
   }
 
-  update(delta, time) {
+  update(delta, time, playerPos) {
+    if (this.group.position.distanceTo(playerPos) > 60) return;
+
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
       const angle = Math.random() * Math.PI * 2;
@@ -1331,7 +1376,7 @@ class VoxelChicken {
   }
 }
 
-// 🧟 殭屍 Mob (掉落 1~2 骨頭道具)
+// 🧟 殭屍 Mob
 class VoxelZombie {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1526,13 +1571,16 @@ class VoxelArmadillo {
   }
 }
 
-// 🐺 1.20.6 可馴服狼 & 狼鎧甲
+// 🐺 1.20.6 可馴服/反擊野生狼 Companion & Hostile Wild Wolf
 class VoxelWolf {
   constructor(x, z) {
     this.group = new THREE.Group();
     this.skinMat = new THREE.MeshLambertMaterial({ color: 0xd3d3d3 });
     this.armorMat = new THREE.MeshLambertMaterial({ color: 0x9c6644 });
     this.collarMat = new THREE.MeshBasicMaterial({ color: 0xe63946 });
+
+    this.eyeNormalMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    this.eyeAngryMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
     this.body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 1.0), this.skinMat);
     this.body.position.y = 0.6;
@@ -1554,9 +1602,22 @@ class VoxelWolf {
     const snout = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.3), this.skinMat);
     snout.position.set(0, -0.1, 0.3);
 
+    // 狼的清晰眼睛與嘴巴
+    this.eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), this.eyeNormalMat);
+    this.eyeL.position.set(-0.14, 0.08, 0.26);
+
+    this.eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), this.eyeNormalMat);
+    this.eyeR.position.set(0.14, 0.08, 0.26);
+
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.05), new THREE.MeshBasicMaterial({ color: 0x1a1a1a }));
+    nose.position.set(0, 0.02, 0.16);
+
+    snout.add(nose);
     this.head.add(earL);
     this.head.add(earR);
     this.head.add(snout);
+    this.head.add(this.eyeL);
+    this.head.add(this.eyeR);
     this.group.add(this.head);
 
     this.legs = [];
@@ -1573,13 +1634,24 @@ class VoxelWolf {
 
     this.health = 5;
     this.isTamed = false;
+    this.isAngry = false;
     this.attackCooldown = 0;
+    this.targetDir = new THREE.Vector3();
+    this.changeDirTimer = 0;
   }
 
   hit() {
     this.health--;
     sounds.playHitZombie();
     spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.6, 0)), 0xd3d3d3);
+
+    // 未服從前被打會激怒！眼睛發紅反擊咬玩家
+    if (!this.isTamed) {
+      this.isAngry = true;
+      this.eyeL.material = this.eyeAngryMat;
+      this.eyeR.material = this.eyeAngryMat;
+    }
+
     if (this.health <= 0) {
       scene.remove(this.group);
       spawnDroppedItem(this.group.position, 'BONE_ITEM', 1);
@@ -1590,12 +1662,18 @@ class VoxelWolf {
 
   tame() {
     this.isTamed = true;
+    this.isAngry = false;
+    this.eyeL.material = this.eyeNormalMat;
+    this.eyeR.material = this.eyeNormalMat;
     this.collar.visible = true;
     this.body.material = this.armorMat;
     sounds.playWolfBark();
+    spawnHeartParticles(this.group.position.clone());
   }
 
-  update(delta, playerPos, zombies) {
+  update(delta, playerPos, zombies, hurtPlayerCb) {
+    if (this.group.position.distanceTo(playerPos) > 60 && !this.isTamed && !this.isAngry) return;
+
     this.attackCooldown -= delta;
 
     if (this.isTamed) {
@@ -1615,7 +1693,7 @@ class VoxelWolf {
         const dist = dir.length();
         if (dist > 1.0) {
           dir.normalize();
-          this.group.position.addScaledVector(dir, delta * 3.2);
+          this.group.position.addScaledVector(dir, delta * 3.5);
           this.group.rotation.y = Math.atan2(dir.x, dir.z);
         } else if (this.attackCooldown <= 0) {
           this.attackCooldown = 1.0;
@@ -1627,20 +1705,69 @@ class VoxelWolf {
           }
         }
       } else {
+        // 緊密跟隨玩家 (走到哪跟到哪)
         const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
         dir.y = 0;
         const dist = dir.length();
-        if (dist > 2.5) {
+        if (dist > 2.0) {
           dir.normalize();
-          this.group.position.addScaledVector(dir, delta * 2.5);
+          const speed = dist > 6.0 ? 5.5 : 3.0;
+          this.group.position.addScaledVector(dir, delta * speed);
           this.group.rotation.y = Math.atan2(dir.x, dir.z);
         }
       }
+    } else if (this.isAngry) {
+      // 激怒狀態：追咬玩家 (一次扣 1 顆心 / 2 點血量)
+      const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
+      dir.y = 0;
+      const dist = dir.length();
+
+      if (dist > 0.8 && dist < 25) {
+        dir.normalize();
+        const nextPos = this.group.position.clone().addScaledVector(dir, delta * 2.8);
+        const targetY = getGroundHeight(nextPos.x, nextPos.z);
+        if (targetY - this.group.position.y <= 1.1) {
+          this.group.position.x = nextPos.x;
+          this.group.position.z = nextPos.z;
+          this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
+        }
+        this.group.rotation.y = Math.atan2(dir.x, dir.z);
+      }
+
+      if (dist <= 1.3 && this.attackCooldown <= 0) {
+        this.attackCooldown = 1.2;
+        sounds.playHitZombie();
+        hurtPlayerCb(2); // 反擊咬玩家一咬即扣 1 顆心！
+      }
+    } else {
+      // 野生和平踱步
+      this.changeDirTimer -= delta;
+      if (this.changeDirTimer <= 0) {
+        const angle = Math.random() * Math.PI * 2;
+        this.targetDir.set(Math.cos(angle), 0, Math.sin(angle));
+        this.group.rotation.y = Math.atan2(this.targetDir.x, this.targetDir.z);
+        this.changeDirTimer = 3 + Math.random() * 4;
+      }
+
+      const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.8);
+      const targetY = getGroundHeight(nextPos.x, nextPos.z);
+      if (targetY - this.group.position.y <= 1.1) {
+        this.group.position.x = nextPos.x;
+        this.group.position.z = nextPos.z;
+        this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
+      } else {
+        this.changeDirTimer = 0;
+      }
     }
+
+    const t = performance.now() / 150;
+    this.legs.forEach((leg, idx) => {
+      leg.rotation.x = Math.sin(t + idx) * 0.4;
+    });
   }
 }
 
-// 360x360 (擴大 2 倍) 1.20.6 世界地圖
+// 360x360 1.20.6 世界地圖
 function generateInitialWorld() {
   const WORLD_SIZE = 360;
   const HALF_SIZE = WORLD_SIZE / 2;
@@ -1715,43 +1842,44 @@ const zombieList = [];
 const armadilloList = [];
 const wolfList = [];
 
+// 依照需求大規模生成指定數量的生物：羊 500隻、豬 400隻、牛 200隻、雞 200隻、狼 100隻
 function spawnInitialMobs() {
-  for (let i = 0; i < 30; i++) {
-    const rx = (Math.random() - 0.5) * 300;
-    const rz = (Math.random() - 0.5) * 300;
+  for (let i = 0; i < 500; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
     sheepList.push(new VoxelSheep(rx, rz));
   }
-  for (let i = 0; i < 30; i++) {
-    const rx = (Math.random() - 0.5) * 300;
-    const rz = (Math.random() - 0.5) * 300;
+  for (let i = 0; i < 400; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
     pigList.push(new VoxelPig(rx, rz));
   }
-  for (let i = 0; i < 30; i++) {
-    const rx = (Math.random() - 0.5) * 300;
-    const rz = (Math.random() - 0.5) * 300;
+  for (let i = 0; i < 200; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
     cowList.push(new VoxelCow(rx, rz));
   }
-  for (let i = 0; i < 30; i++) {
-    const rx = (Math.random() - 0.5) * 300;
-    const rz = (Math.random() - 0.5) * 300;
+  for (let i = 0; i < 200; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
     chickenList.push(new VoxelChicken(rx, rz));
   }
-  for (let i = 0; i < 30; i++) {
-    const rx = (Math.random() - 0.5) * 300;
-    const rz = (Math.random() - 0.5) * 300;
-    if (Math.abs(rx) > 12 || Math.abs(rz) > 12) {
+  for (let i = 0; i < 100; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
+    wolfList.push(new VoxelWolf(rx, rz));
+  }
+  for (let i = 0; i < 40; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
+    if (Math.abs(rx) > 15 || Math.abs(rz) > 15) {
       zombieList.push(new VoxelZombie(rx, rz));
     }
   }
-  for (let i = 0; i < 20; i++) {
-    const rx = (Math.random() - 0.5) * 300;
-    const rz = (Math.random() - 0.5) * 300;
+  for (let i = 0; i < 30; i++) {
+    const rx = (Math.random() - 0.5) * 320;
+    const rz = (Math.random() - 0.5) * 320;
     armadilloList.push(new VoxelArmadillo(rx, rz));
-  }
-  for (let i = 0; i < 20; i++) {
-    const rx = (Math.random() - 0.5) * 300;
-    const rz = (Math.random() - 0.5) * 300;
-    wolfList.push(new VoxelWolf(rx, rz));
   }
 }
 spawnInitialMobs();
@@ -1837,7 +1965,6 @@ let prevTime = performance.now();
 let dayTime = 0.25;
 let isFastTime = false;
 
-// 奔跑與跌落傷害/自然回血追蹤
 let sprintRunDistance = 0;
 let healTimer = 0;
 let highestYInAir = 0;
@@ -1893,7 +2020,6 @@ function eatFood(foodBlock) {
   updateHungerBar();
   updateHealthBar();
 
-  // 消耗食物
   HOTBAR_BLOCKS[selectedBlockIndex] = null;
   initHotbarUI();
 }
@@ -2033,7 +2159,7 @@ document.addEventListener('wheel', (e) => {
   }
 });
 
-// 滑鼠點擊與吃食物
+// 滑鼠點擊
 document.addEventListener('mousedown', (e) => {
   if (!controls.isLocked) return;
   if (currentMode === GAME_MODES.SPECTATOR) return;
@@ -2042,19 +2168,32 @@ document.addEventListener('mousedown', (e) => {
 
   const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
 
-  // 如果拿著食物點擊，進行吃東西！
   if (selectedBlock && selectedBlock.isFood) {
     eatFood(selectedBlock);
     return;
   }
 
-  // 生物點擊打擊測試
+  // 生物點擊打擊與餵食測試
   raycaster.setFromCamera(centerVector, camera);
   const mobIntersects = raycaster.intersectObjects(scene.children, true);
   if (mobIntersects.length > 0 && mobIntersects[0].distance < 8) {
     let parentObj = mobIntersects[0].object;
     while (parentObj && parentObj.parent && parentObj.parent !== scene) {
       parentObj = parentObj.parent;
+    }
+
+    const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
+    if (targetWolfIdx !== -1) {
+      if (selectedBlock === BLOCKS.BONE_ITEM && !wolfList[targetWolfIdx].isTamed) {
+        wolfList[targetWolfIdx].tame();
+        alert('🐺 成功拿骨頭餵食並馴服狼！狼會冒出愛心 ❤️ 並忠實跟隨護衛玩家！');
+        return;
+      }
+      if (e.button === 0) {
+        const isDead = wolfList[targetWolfIdx].hit();
+        if (isDead) wolfList.splice(targetWolfIdx, 1);
+        return;
+      }
     }
 
     const targetZombieIdx = zombieList.findIndex(z => z.group === parentObj);
@@ -2096,18 +2235,6 @@ document.addEventListener('mousedown', (e) => {
     if (targetArmadilloIdx !== -1 && e.button === 0) {
       const isDead = armadilloList[targetArmadilloIdx].hit();
       if (isDead) armadilloList.splice(targetArmadilloIdx, 1);
-      return;
-    }
-
-    const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
-    if (targetWolfIdx !== -1 && e.button === 0) {
-      if (selectedBlock === BLOCKS.BONE_ITEM && !wolfList[targetWolfIdx].isTamed) {
-        wolfList[targetWolfIdx].tame();
-        alert('🐺 成功馴服狼！狼已裝備 1.20.6 狼鎧甲 (Wolf Armor)，將護衛玩家並攻擊殭屍！');
-        return;
-      }
-      const isDead = wolfList[targetWolfIdx].hit();
-      if (isDead) wolfList.splice(targetWolfIdx, 1);
       return;
     }
   }
@@ -2331,15 +2458,17 @@ function animate() {
     timeDisplay.innerText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
 
-  // 生物與掉落物更新
-  sheepList.forEach(sheep => sheep.update(delta, performance.now() / 1000));
-  pigList.forEach(pig => pig.update(delta, performance.now() / 1000));
-  cowList.forEach(cow => cow.update(delta, performance.now() / 1000));
-  chickenList.forEach(chicken => chicken.update(delta, performance.now() / 1000));
+  // 生物、掉落物與愛心粒子更新
+  const nowTime = performance.now() / 1000;
+  sheepList.forEach(sheep => sheep.update(delta, nowTime, camera.position));
+  pigList.forEach(pig => pig.update(delta, nowTime, camera.position));
+  cowList.forEach(cow => cow.update(delta, nowTime, camera.position));
+  chickenList.forEach(chicken => chicken.update(delta, nowTime, camera.position));
   zombieList.forEach(zombie => zombie.update(delta, camera.position, hurtPlayer));
-  armadilloList.forEach(armadillo => armadillo.update(delta, performance.now() / 1000, camera.position));
-  wolfList.forEach(wolf => wolf.update(delta, camera.position, zombieList));
+  armadilloList.forEach(armadillo => armadillo.update(delta, nowTime, camera.position));
+  wolfList.forEach(wolf => wolf.update(delta, camera.position, zombieList, hurtPlayer));
   updateParticles(delta);
+  updateHeartParticles(delta);
   updateDroppedItems(delta, camera.position);
 
   updateRaycaster();
@@ -2404,7 +2533,6 @@ function animate() {
     }
 
   } else {
-    // 生存模式物理：重力、跌落傷害、奔跑消耗與自動回血
     velocity.y -= 25.0 * delta;
 
     const moveSpeed = (isFastTime ? 10.0 : 5.5) * delta;
@@ -2421,7 +2549,6 @@ function animate() {
         camera.position.z = oldPos.z;
       }
 
-      // 奔跑累積消耗飽食度 (連續奔跑約 25 秒扣 1 飽食度)
       sprintRunDistance += moveSpeed;
       if (sprintRunDistance >= 135) {
         sprintRunDistance = 0;
@@ -2432,7 +2559,6 @@ function animate() {
       }
     }
 
-    // 飽食度滿 (>= 9) 且受傷時自動自然回血
     if (playerHunger >= 9 && playerHealth < 10) {
       healTimer += delta;
       if (healTimer >= 3.5) {
@@ -2448,7 +2574,6 @@ function animate() {
     const playerFeetY = camera.position.y - 1.6;
     const targetGroundY = getGroundHeightAtFeet(camera.position.x, playerFeetY, camera.position.z) + 1.6;
 
-    // 跌落傷害判斷 (從 3 格高度跳下一格高扣半顆心)
     if (camera.position.y > targetGroundY + 0.1) {
       if (!wasInAir) {
         wasInAir = true;
