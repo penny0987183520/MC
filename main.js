@@ -93,6 +93,27 @@ class SoundFx {
     osc.stop(this.ctx.currentTime + 0.12);
   }
 
+  playEatSound() {
+    this.init();
+    if (!this.ctx) return;
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220 + Math.random() * 80, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      }, i * 100);
+    }
+  }
+
   playHitZombie() {
     this.init();
     if (!this.ctx) return;
@@ -227,7 +248,11 @@ const BLOCKS = {
   WOLF_ARMOR: { id: 25, name: '🛡️ 1.20.6 狼鎧甲 (Wolf Armor)', color: 0x8b5e3c, requiredHits: 1, isTool: true },
   CHERRY_PLANKS: { id: 26, name: '🌸 櫻花木板 (Cherry Planks)', color: 0xe8a5b8, requiredHits: 3 },
   BAMBOO_BLOCK: { id: 27, name: '🎋 竹子塊 (Bamboo Block)', color: 0x76a035, requiredHits: 3 },
-  BAMBOO_MOSAIC: { id: 28, name: '🎋 竹木馬賽克 (Bamboo Mosaic)', color: 0x99bb33, requiredHits: 3 }
+  BAMBOO_MOSAIC: { id: 28, name: '🎋 竹木馬賽克 (Bamboo Mosaic)', color: 0x99bb33, requiredHits: 3 },
+  SHEEP_MEAT: { id: 29, name: '🥩 生羊肉 (Raw Mutton)', color: 0xc45c5c, isFood: true, restoresHunger: 3, isTool: true },
+  PIG_MEAT: { id: 30, name: '🥓 生豬肉 (Raw Porkchop)', color: 0xe07a7a, isFood: true, restoresHunger: 4, isTool: true },
+  COW_MEAT: { id: 31, name: '🥩 生牛肉 (Raw Beef)', color: 0x943030, isFood: true, restoresHunger: 4, isTool: true },
+  CHICKEN_MEAT: { id: 32, name: '🍗 生雞肉 (Raw Chicken)', color: 0xd6996b, isFood: true, restoresHunger: 3, isTool: true }
 };
 
 let HOTBAR_BLOCKS = [null, null, null, null, null, null, null, null, null, null];
@@ -241,7 +266,7 @@ function createPixelTexture(type, face = 'all') {
   if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
 
   const canvas = document.createElement('canvas');
-  const size = 64; // 升級至 64x64 高畫質解析度
+  const size = 64;
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
@@ -254,10 +279,8 @@ function createPixelTexture(type, face = 'all') {
     return `rgb(${r},${g},${b})`;
   }
 
-  // 繪製細緻紋理底圖
   if (type === 'GRASS') {
     if (face === 'top') {
-      // 超立體草地綠毯
       ctx.fillStyle = '#5c8e2b';
       ctx.fillRect(0, 0, size, size);
       for (let x = 0; x < size; x += 2) {
@@ -266,7 +289,6 @@ function createPixelTexture(type, face = 'all') {
           ctx.fillRect(x, y, 2, 2);
         }
       }
-      // 草地高光與陰影刀鋒
       for (let i = 0; i < 60; i++) {
         const rx = Math.floor(Math.random() * (size - 4));
         const ry = Math.floor(Math.random() * (size - 4));
@@ -274,7 +296,6 @@ function createPixelTexture(type, face = 'all') {
         ctx.fillRect(rx, ry, 3, 3);
       }
     } else if (face === 'side') {
-      // 泥土底圖
       ctx.fillStyle = '#866043';
       ctx.fillRect(0, 0, size, size);
       for (let x = 0; x < size; x += 2) {
@@ -283,14 +304,12 @@ function createPixelTexture(type, face = 'all') {
           ctx.fillRect(x, y, 2, 2);
         }
       }
-      // 上方下垂草葉垂墜邊緣 (Overhang Drips)
       for (let x = 0; x < size; x += 2) {
         const depth = 12 + Math.floor(Math.sin(x * 0.2) * 4 + Math.random() * 6);
         for (let y = 0; y < depth; y += 2) {
           ctx.fillStyle = randomNoise(92, 148, 42, 24);
           ctx.fillRect(x, y, 2, 2);
         }
-        // 深色草根陰影
         ctx.fillStyle = '#3d631d';
         ctx.fillRect(x, depth, 2, 2);
       }
@@ -313,7 +332,6 @@ function createPixelTexture(type, face = 'all') {
         ctx.fillRect(x, y, 2, 2);
       }
     }
-    // 泥土中的小石子細節
     for (let i = 0; i < 20; i++) {
       const rx = Math.floor(Math.random() * (size - 4));
       const ry = Math.floor(Math.random() * (size - 4));
@@ -329,7 +347,6 @@ function createPixelTexture(type, face = 'all') {
         ctx.fillRect(x, y, 2, 2);
       }
     }
-    // 石頭裂紋與深色陰影塊
     for (let i = 0; i < 15; i++) {
       const rx = Math.floor(Math.random() * (size - 6));
       const ry = Math.floor(Math.random() * (size - 6));
@@ -338,6 +355,14 @@ function createPixelTexture(type, face = 'all') {
       ctx.fillStyle = '#a8a8a8';
       ctx.fillRect(rx, ry + 2, 6, 2);
     }
+  } else if (['SHEEP_MEAT', 'PIG_MEAT', 'COW_MEAT', 'CHICKEN_MEAT'].includes(type)) {
+    const config = BLOCKS[type];
+    ctx.fillStyle = `#${config.color.toString(16).padStart(6, '0')}`;
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(16, 16, 32, 32);
+    ctx.fillStyle = `#${config.color.toString(16).padStart(6, '0')}`;
+    ctx.fillRect(20, 20, 24, 24);
   } else if (['WOOD', 'OAK_LOG', 'SPRUCE_LOG', 'BIRCH_LOG', 'JUNGLE_LOG', 'ACACIA_LOG', 'DARK_OAK_LOG', 'CHERRY_LOG'].includes(type)) {
     if (face === 'top' || face === 'bottom') {
       ctx.fillStyle = type === 'CHERRY_LOG' ? '#e8a5b8' : (type === 'BIRCH_LOG' ? '#d6c89b' : '#a07850');
@@ -393,7 +418,6 @@ function createPixelTexture(type, face = 'all') {
         }
       }
     }
-    // 鑽石切面邊框
     ctx.strokeStyle = '#217a74';
     ctx.lineWidth = 3;
     ctx.strokeRect(2, 2, size - 4, size - 4);
@@ -405,7 +429,6 @@ function createPixelTexture(type, face = 'all') {
     ctx.fillStyle = '#000000';
     ctx.font = '900 20px sans-serif';
     ctx.fillText('TNT', 11, 39);
-    // 上下方條紋
     ctx.fillStyle = '#8b1d14';
     ctx.fillRect(0, 0, size, 4);
     ctx.fillRect(0, size - 4, size, 4);
@@ -418,7 +441,6 @@ function createPixelTexture(type, face = 'all') {
         ctx.fillRect(x, y, 2, 2);
       }
     }
-    // 古代陶瓷碎片黑印
     ctx.fillStyle = '#8f6527';
     ctx.fillRect(16, 16, 8, 8);
     ctx.fillRect(40, 36, 10, 8);
@@ -546,7 +568,7 @@ scene.add(camera);
 
 const controls = new PointerLockControls(camera, document.body);
 
-// 光照系統 (提升光影對比與柔和陰影)
+// 光照系統
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
 scene.add(ambientLight);
 
@@ -556,11 +578,11 @@ sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 2048;
 sunLight.shadow.mapSize.height = 2048;
 sunLight.shadow.camera.near = 0.5;
-sunLight.shadow.camera.far = 300;
-sunLight.shadow.camera.left = -100;
-sunLight.shadow.camera.right = 100;
-sunLight.shadow.camera.top = 100;
-sunLight.shadow.camera.bottom = -100;
+sunLight.shadow.camera.far = 350;
+sunLight.shadow.camera.left = -150;
+sunLight.shadow.camera.right = 150;
+sunLight.shadow.camera.top = 150;
+sunLight.shadow.camera.bottom = -150;
 scene.add(sunLight);
 
 // 第一人稱手臂與十字鎬動畫
@@ -610,8 +632,8 @@ function updateArmAnimation(delta) {
   }
 }
 
-// --- 方塊世界與 InstancedMesh 高效渲染管理器 (60 FPS 極速優化) ---
-const voxelMap = new Map(); // key -> { typeKey, x, y, z }
+// --- 方塊世界與 InstancedMesh 高效渲染管理器 ---
+const voxelMap = new Map();
 const blockHitsMap = new Map();
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 
@@ -638,16 +660,16 @@ function isBlockOccluded(x, y, z) {
     const nKey = getVoxelKey(nx, ny, nz);
     const nVal = voxelMap.get(nKey);
     if (!nVal || isTransparentBlock(nVal.typeKey)) {
-      return false; // 鄰近有空氣或透明方塊，此面需渲染！
+      return false;
     }
   }
-  return true; // 六面全被遮擋，完全免渲染！
+  return true;
 }
 
 class BlockRenderManager {
   constructor(scene) {
     this.scene = scene;
-    this.instancedMeshes = new Map(); // typeKey -> THREE.InstancedMesh
+    this.instancedMeshes = new Map();
     this.dummy = new THREE.Object3D();
     this.isDirty = false;
   }
@@ -660,11 +682,10 @@ class BlockRenderManager {
     if (!this.isDirty) return;
     this.isDirty = false;
 
-    // 1. 依 typeKey 分組非遮擋方塊
     const typeGroups = new Map();
     voxelMap.forEach((val, key) => {
       const { x, y, z, typeKey } = val;
-      if (isBlockOccluded(x, y, z)) return; // 跳過地底內部無光方塊
+      if (isBlockOccluded(x, y, z)) return;
 
       if (!typeGroups.has(typeKey)) {
         typeGroups.set(typeKey, []);
@@ -672,7 +693,6 @@ class BlockRenderManager {
       typeGroups.get(typeKey).push({ x, y, z, key });
     });
 
-    // 2. 更新或新建 InstancedMesh
     typeGroups.forEach((blockList, typeKey) => {
       let imesh = this.instancedMeshes.get(typeKey);
       const count = blockList.length;
@@ -682,7 +702,7 @@ class BlockRenderManager {
           this.scene.remove(imesh);
           imesh.geometry.dispose();
         }
-        const capacity = Math.max(count + 2000, 8000);
+        const capacity = Math.max(count + 3000, 10000);
         const materials = getBlockMaterials(typeKey);
         imesh = new THREE.InstancedMesh(boxGeometry, materials, capacity);
         imesh.castShadow = true;
@@ -702,7 +722,6 @@ class BlockRenderManager {
       imesh.instanceMatrix.needsUpdate = true;
     });
 
-    // 3. 清空無方塊的類型
     this.instancedMeshes.forEach((imesh, typeKey) => {
       if (!typeGroups.has(typeKey)) {
         imesh.count = 0;
@@ -776,21 +795,24 @@ function removeBlock(x, y, z, spawnDebris = true) {
   blockRenderManager.markDirty();
 }
 
-// 🎁 掉落物管理 (Dropped Items System)
+// 🎁 掉落物管理 System
 const droppedItems = [];
 const itemGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
 
-function spawnDroppedItem(pos, typeKey) {
-  const mat = getBlockMaterials(typeKey);
-  const mesh = new THREE.Mesh(itemGeometry, mat);
-  mesh.position.copy(pos).add(new THREE.Vector3(0, 0.2, 0));
-  scene.add(mesh);
+function spawnDroppedItem(pos, typeKey, count = 1) {
+  for (let c = 0; c < count; c++) {
+    const mat = getBlockMaterials(typeKey);
+    const mesh = new THREE.Mesh(itemGeometry, mat);
+    const offset = new THREE.Vector3((Math.random() - 0.5) * 0.4, 0.2 + c * 0.1, (Math.random() - 0.5) * 0.4);
+    mesh.position.copy(pos).add(offset);
+    scene.add(mesh);
 
-  droppedItems.push({
-    mesh,
-    typeKey,
-    time: Math.random() * 10
-  });
+    droppedItems.push({
+      mesh,
+      typeKey,
+      time: Math.random() * 10
+    });
+  }
 }
 
 function addItemToHotbar(typeKey) {
@@ -963,7 +985,7 @@ function explodeTNT(centerX, centerY, centerZ) {
   }
 }
 
-// 🐑 精緻方塊小羊
+// 🐑 精緻方塊小羊 (掉落隨機 1~3 生羊肉)
 class VoxelSheep {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1023,7 +1045,8 @@ class VoxelSheep {
     spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.8, 0)), 0xf5f5f5);
     if (this.health <= 0) {
       scene.remove(this.group);
-      spawnDroppedItem(this.group.position, 'OAK_LOG');
+      const count = 1 + Math.floor(Math.random() * 3);
+      spawnDroppedItem(this.group.position, 'SHEEP_MEAT', count);
       return true;
     }
     return false;
@@ -1056,7 +1079,259 @@ class VoxelSheep {
   }
 }
 
-// 🧟 殭屍 Mob
+// 🐷 方塊小豬 (掉落隨機 1~3 生豬肉)
+class VoxelPig {
+  constructor(x, z) {
+    this.group = new THREE.Group();
+
+    const skinMat = new THREE.MeshLambertMaterial({ color: 0xf4a261 });
+    const snoutMat = new THREE.MeshLambertMaterial({ color: 0xff85a1 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.4), skinMat);
+    body.position.y = 0.7;
+    this.group.add(body);
+
+    this.head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), skinMat);
+    this.head.position.set(0, 1.0, 0.7);
+
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.1), snoutMat);
+    snout.position.set(0, -0.05, 0.32);
+
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
+    eyeL.position.set(-0.18, 0.1, 0.31);
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
+    eyeR.position.set(0.18, 0.1, 0.31);
+
+    this.head.add(snout);
+    this.head.add(eyeL);
+    this.head.add(eyeR);
+    this.group.add(this.head);
+
+    this.legs = [];
+    [[-0.35, 0.3, 0.4], [0.35, 0.3, 0.4], [-0.35, 0.3, -0.4], [0.35, 0.3, -0.4]].forEach(pos => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.6, 0.28), skinMat);
+      leg.position.set(...pos);
+      this.group.add(leg);
+      this.legs.push(leg);
+    });
+
+    const groundY = getGroundHeight(x, z);
+    this.group.position.set(x, groundY, z);
+    scene.add(this.group);
+
+    this.health = 4;
+    this.targetDir = new THREE.Vector3();
+    this.changeDirectionTimer = 0;
+  }
+
+  hit() {
+    this.health--;
+    sounds.playHitZombie();
+    spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.7, 0)), 0xf4a261);
+    if (this.health <= 0) {
+      scene.remove(this.group);
+      const count = 1 + Math.floor(Math.random() * 3);
+      spawnDroppedItem(this.group.position, 'PIG_MEAT', count);
+      return true;
+    }
+    return false;
+  }
+
+  update(delta, time) {
+    this.changeDirectionTimer -= delta;
+    if (this.changeDirectionTimer <= 0) {
+      const angle = Math.random() * Math.PI * 2;
+      this.targetDir.set(Math.cos(angle), 0, Math.sin(angle));
+      this.group.rotation.y = Math.atan2(this.targetDir.x, this.targetDir.z);
+      this.changeDirectionTimer = 3 + Math.random() * 4;
+    }
+
+    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.8);
+    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+
+    if (targetY - this.group.position.y <= 1.1) {
+      this.group.position.x = nextPos.x;
+      this.group.position.z = nextPos.z;
+      this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
+    } else {
+      this.changeDirectionTimer = 0;
+    }
+
+    this.legs.forEach((leg, idx) => {
+      leg.rotation.x = Math.sin(time * 7 + idx) * 0.4;
+    });
+  }
+}
+
+// 🐮 方塊乳牛 (掉落隨機 1~3 生牛肉)
+class VoxelCow {
+  constructor(x, z) {
+    this.group = new THREE.Group();
+
+    const bodyMat = new THREE.MeshLambertMaterial({ color: 0x4a3b32 });
+    const udderMat = new THREE.MeshLambertMaterial({ color: 0xdfcbb5 });
+    const hornMat = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.0, 1.8), bodyMat);
+    body.position.y = 1.0;
+    this.group.add(body);
+
+    this.head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), bodyMat);
+    this.head.position.set(0, 1.4, 0.95);
+
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.1), udderMat);
+    snout.position.set(0, -0.1, 0.36);
+
+    const hornL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.1), hornMat);
+    hornL.position.set(-0.32, 0.4, 0);
+    const hornR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.1), hornMat);
+    hornR.position.set(0.32, 0.4, 0);
+
+    this.head.add(snout);
+    this.head.add(hornL);
+    this.head.add(hornR);
+    this.group.add(this.head);
+
+    this.legs = [];
+    [[-0.45, 0.45, 0.6], [0.45, 0.45, 0.6], [-0.45, 0.45, -0.6], [0.45, 0.45, -0.6]].forEach(pos => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 0.35), bodyMat);
+      leg.position.set(...pos);
+      this.group.add(leg);
+      this.legs.push(leg);
+    });
+
+    const groundY = getGroundHeight(x, z);
+    this.group.position.set(x, groundY, z);
+    scene.add(this.group);
+
+    this.health = 6;
+    this.targetDir = new THREE.Vector3();
+    this.changeDirectionTimer = 0;
+  }
+
+  hit() {
+    this.health--;
+    sounds.playHitZombie();
+    spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 0x4a3b32);
+    if (this.health <= 0) {
+      scene.remove(this.group);
+      const count = 1 + Math.floor(Math.random() * 3);
+      spawnDroppedItem(this.group.position, 'COW_MEAT', count);
+      return true;
+    }
+    return false;
+  }
+
+  update(delta, time) {
+    this.changeDirectionTimer -= delta;
+    if (this.changeDirectionTimer <= 0) {
+      const angle = Math.random() * Math.PI * 2;
+      this.targetDir.set(Math.cos(angle), 0, Math.sin(angle));
+      this.group.rotation.y = Math.atan2(this.targetDir.x, this.targetDir.z);
+      this.changeDirectionTimer = 3 + Math.random() * 4;
+    }
+
+    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.65);
+    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+
+    if (targetY - this.group.position.y <= 1.1) {
+      this.group.position.x = nextPos.x;
+      this.group.position.z = nextPos.z;
+      this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
+    } else {
+      this.changeDirectionTimer = 0;
+    }
+
+    this.legs.forEach((leg, idx) => {
+      leg.rotation.x = Math.sin(time * 5 + idx) * 0.35;
+    });
+  }
+}
+
+// 🐔 方塊小雞 (掉落隨機 1~2 生雞肉)
+class VoxelChicken {
+  constructor(x, z) {
+    this.group = new THREE.Group();
+
+    const featherMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const beakMat = new THREE.MeshLambertMaterial({ color: 0xf4a261 });
+    const combMat = new THREE.MeshLambertMaterial({ color: 0xe63946 });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.7), featherMat);
+    body.position.y = 0.45;
+    this.group.add(body);
+
+    this.head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), featherMat);
+    this.head.position.set(0, 0.75, 0.3);
+
+    const beak = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.15), beakMat);
+    beak.position.set(0, -0.05, 0.22);
+
+    const comb = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.12), combMat);
+    comb.position.set(0, 0.2, 0.05);
+
+    this.head.add(beak);
+    this.head.add(comb);
+    this.group.add(this.head);
+
+    this.legs = [];
+    [[-0.12, 0.15, 0], [0.12, 0.15, 0]].forEach(pos => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.08), beakMat);
+      leg.position.set(...pos);
+      this.group.add(leg);
+      this.legs.push(leg);
+    });
+
+    const groundY = getGroundHeight(x, z);
+    this.group.position.set(x, groundY, z);
+    scene.add(this.group);
+
+    this.health = 3;
+    this.targetDir = new THREE.Vector3();
+    this.changeDirectionTimer = 0;
+  }
+
+  hit() {
+    this.health--;
+    sounds.playHitZombie();
+    spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.4, 0)), 0xffffff);
+    if (this.health <= 0) {
+      scene.remove(this.group);
+      const count = 1 + Math.floor(Math.random() * 2);
+      spawnDroppedItem(this.group.position, 'CHICKEN_MEAT', count);
+      return true;
+    }
+    return false;
+  }
+
+  update(delta, time) {
+    this.changeDirectionTimer -= delta;
+    if (this.changeDirectionTimer <= 0) {
+      const angle = Math.random() * Math.PI * 2;
+      this.targetDir.set(Math.cos(angle), 0, Math.sin(angle));
+      this.group.rotation.y = Math.atan2(this.targetDir.x, this.targetDir.z);
+      this.changeDirectionTimer = 2 + Math.random() * 3;
+    }
+
+    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.9);
+    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+
+    if (targetY - this.group.position.y <= 1.1) {
+      this.group.position.x = nextPos.x;
+      this.group.position.z = nextPos.z;
+      this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
+    } else {
+      this.changeDirectionTimer = 0;
+    }
+
+    this.legs.forEach((leg, idx) => {
+      leg.rotation.x = Math.sin(time * 9 + idx) * 0.5;
+    });
+  }
+}
+
+// 🧟 殭屍 Mob (掉落 1~2 骨頭道具)
 class VoxelZombie {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1117,7 +1392,8 @@ class VoxelZombie {
     spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 0x48793b);
     if (this.health <= 0) {
       scene.remove(this.group);
-      spawnDroppedItem(this.group.position, 'BONE_ITEM');
+      const count = 1 + Math.floor(Math.random() * 2);
+      spawnDroppedItem(this.group.position, 'BONE_ITEM', count);
       return true;
     }
     return false;
@@ -1152,12 +1428,12 @@ class VoxelZombie {
 
     if (dist <= 1.3 && Math.abs(heightDiff) < 1.5 && this.attackCooldown <= 0) {
       this.attackCooldown = 1.5;
-      hurtPlayerCb();
+      hurtPlayerCb(1);
     }
   }
 }
 
-// 🦔 1.20.6 犰狳 (Armadillo)
+// 🦔 1.20.6 犰狳
 class VoxelArmadillo {
   constructor(x, z) {
     this.group = new THREE.Group();
@@ -1205,7 +1481,7 @@ class VoxelArmadillo {
     spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.4, 0)), 0x9c6644);
     if (this.health <= 0) {
       scene.remove(this.group);
-      spawnDroppedItem(this.group.position, 'WOLF_ARMOR');
+      spawnDroppedItem(this.group.position, 'WOLF_ARMOR', 1);
       return true;
     }
     return false;
@@ -1306,7 +1582,7 @@ class VoxelWolf {
     spawnBlockDebris(this.group.position.clone().add(new THREE.Vector3(0, 0.6, 0)), 0xd3d3d3);
     if (this.health <= 0) {
       scene.remove(this.group);
-      spawnDroppedItem(this.group.position, 'BONE_ITEM');
+      spawnDroppedItem(this.group.position, 'BONE_ITEM', 1);
       return true;
     }
     return false;
@@ -1364,14 +1640,14 @@ class VoxelWolf {
   }
 }
 
-// 240x240 (5倍擴大) 1.20.6 世界地圖
+// 360x360 (擴大 2 倍) 1.20.6 世界地圖
 function generateInitialWorld() {
-  const WORLD_SIZE = 240;
+  const WORLD_SIZE = 360;
   const HALF_SIZE = WORLD_SIZE / 2;
 
   for (let x = -HALF_SIZE; x < HALF_SIZE; x++) {
     for (let z = -HALF_SIZE; z < HALF_SIZE; z++) {
-      const height = Math.floor(Math.sin(x * 0.15) * Math.cos(z * 0.15) * 2.2) + 3;
+      const height = Math.floor(Math.sin(x * 0.12) * Math.cos(z * 0.12) * 2.5) + 3;
       for (let y = 0; y < height; y++) {
         if (y === 0) addBlock(x, y, z, 'STONE', false);
         else addBlock(x, y, z, 'DIRT', false);
@@ -1432,31 +1708,49 @@ function generateCherryTree(trX, trY, trZ) {
 generateInitialWorld();
 
 const sheepList = [];
+const pigList = [];
+const cowList = [];
+const chickenList = [];
 const zombieList = [];
 const armadilloList = [];
 const wolfList = [];
 
 function spawnInitialMobs() {
   for (let i = 0; i < 30; i++) {
-    const rx = (Math.random() - 0.5) * 200;
-    const rz = (Math.random() - 0.5) * 200;
+    const rx = (Math.random() - 0.5) * 300;
+    const rz = (Math.random() - 0.5) * 300;
     sheepList.push(new VoxelSheep(rx, rz));
   }
-  for (let i = 0; i < 25; i++) {
-    const rx = (Math.random() - 0.5) * 200;
-    const rz = (Math.random() - 0.5) * 200;
+  for (let i = 0; i < 30; i++) {
+    const rx = (Math.random() - 0.5) * 300;
+    const rz = (Math.random() - 0.5) * 300;
+    pigList.push(new VoxelPig(rx, rz));
+  }
+  for (let i = 0; i < 30; i++) {
+    const rx = (Math.random() - 0.5) * 300;
+    const rz = (Math.random() - 0.5) * 300;
+    cowList.push(new VoxelCow(rx, rz));
+  }
+  for (let i = 0; i < 30; i++) {
+    const rx = (Math.random() - 0.5) * 300;
+    const rz = (Math.random() - 0.5) * 300;
+    chickenList.push(new VoxelChicken(rx, rz));
+  }
+  for (let i = 0; i < 30; i++) {
+    const rx = (Math.random() - 0.5) * 300;
+    const rz = (Math.random() - 0.5) * 300;
     if (Math.abs(rx) > 12 || Math.abs(rz) > 12) {
       zombieList.push(new VoxelZombie(rx, rz));
     }
   }
   for (let i = 0; i < 20; i++) {
-    const rx = (Math.random() - 0.5) * 200;
-    const rz = (Math.random() - 0.5) * 200;
+    const rx = (Math.random() - 0.5) * 300;
+    const rz = (Math.random() - 0.5) * 300;
     armadilloList.push(new VoxelArmadillo(rx, rz));
   }
   for (let i = 0; i < 20; i++) {
-    const rx = (Math.random() - 0.5) * 200;
-    const rz = (Math.random() - 0.5) * 200;
+    const rx = (Math.random() - 0.5) * 300;
+    const rz = (Math.random() - 0.5) * 300;
     wolfList.push(new VoxelWolf(rx, rz));
   }
 }
@@ -1482,7 +1776,6 @@ function updateRaycaster() {
   }
   raycaster.setFromCamera(centerVector, camera);
 
-  // 極速 Raycast 檢測：只針對 InstancedMesh 進行測試
   const targets = blockRenderManager.getRenderableMeshes();
   const intersects = raycaster.intersectObjects(targets, false);
 
@@ -1533,8 +1826,9 @@ function updateModeDisplay() {
   }
 }
 
-// 玩家物理
+// 玩家物理與血量/飽食度系統
 let playerHealth = 10;
+let playerHunger = 10;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 let moveUp = false, moveDown = false;
 let canJump = false;
@@ -1543,17 +1837,25 @@ let prevTime = performance.now();
 let dayTime = 0.25;
 let isFastTime = false;
 
-function hurtPlayer() {
+// 奔跑與跌落傷害/自然回血追蹤
+let sprintRunDistance = 0;
+let healTimer = 0;
+let highestYInAir = 0;
+let wasInAir = false;
+
+function hurtPlayer(amount = 1) {
   if (currentMode === GAME_MODES.CREATIVE || currentMode === GAME_MODES.SPECTATOR) return;
-  playerHealth--;
+  playerHealth = Math.max(0, playerHealth - amount);
   sounds.playPlayerHurt();
   updateHealthBar();
   if (playerHealth <= 0) {
-    alert('💀 你已被殭屍擊敗！世界已重置重生。');
+    alert('💀 你已被擊敗！世界已重置重生。');
     playerHealth = 10;
+    playerHunger = 10;
     const respawnY = getGroundHeight(0, 0) + 1.6;
     camera.position.set(0, respawnY, 0);
     updateHealthBar();
+    updateHungerBar();
   }
 }
 
@@ -1567,6 +1869,33 @@ function updateHealthBar() {
     span.innerText = i < playerHealth ? '❤️' : '🖤';
     heartContainer.appendChild(span);
   }
+}
+
+function updateHungerBar() {
+  const hungerContainer = document.getElementById('hunger-container');
+  if (!hungerContainer) return;
+  hungerContainer.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const span = document.createElement('span');
+    span.className = 'hunger';
+    span.innerText = i < playerHunger ? '🍗' : '🦴';
+    hungerContainer.appendChild(span);
+  }
+}
+
+function eatFood(foodBlock) {
+  if (playerHunger >= 10 && playerHealth >= 10) return;
+  sounds.playEatSound();
+  playerHunger = Math.min(10, playerHunger + (foodBlock.restoresHunger || 3));
+  if (playerHealth < 10) {
+    playerHealth = Math.min(10, playerHealth + 1);
+  }
+  updateHungerBar();
+  updateHealthBar();
+
+  // 消耗食物
+  HOTBAR_BLOCKS[selectedBlockIndex] = null;
+  initHotbarUI();
 }
 
 // 背包 UI
@@ -1704,12 +2033,20 @@ document.addEventListener('wheel', (e) => {
   }
 });
 
-// 滑鼠點擊
+// 滑鼠點擊與吃食物
 document.addEventListener('mousedown', (e) => {
   if (!controls.isLocked) return;
   if (currentMode === GAME_MODES.SPECTATOR) return;
 
   swingArm();
+
+  const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
+
+  // 如果拿著食物點擊，進行吃東西！
+  if (selectedBlock && selectedBlock.isFood) {
+    eatFood(selectedBlock);
+    return;
+  }
 
   // 生物點擊打擊測試
   raycaster.setFromCamera(centerVector, camera);
@@ -1734,6 +2071,27 @@ document.addEventListener('mousedown', (e) => {
       return;
     }
 
+    const targetPigIdx = pigList.findIndex(p => p.group === parentObj);
+    if (targetPigIdx !== -1 && e.button === 0) {
+      const isDead = pigList[targetPigIdx].hit();
+      if (isDead) pigList.splice(targetPigIdx, 1);
+      return;
+    }
+
+    const targetCowIdx = cowList.findIndex(c => c.group === parentObj);
+    if (targetCowIdx !== -1 && e.button === 0) {
+      const isDead = cowList[targetCowIdx].hit();
+      if (isDead) cowList.splice(targetCowIdx, 1);
+      return;
+    }
+
+    const targetChickenIdx = chickenList.findIndex(ch => ch.group === parentObj);
+    if (targetChickenIdx !== -1 && e.button === 0) {
+      const isDead = chickenList[targetChickenIdx].hit();
+      if (isDead) chickenList.splice(targetChickenIdx, 1);
+      return;
+    }
+
     const targetArmadilloIdx = armadilloList.findIndex(a => a.group === parentObj);
     if (targetArmadilloIdx !== -1 && e.button === 0) {
       const isDead = armadilloList[targetArmadilloIdx].hit();
@@ -1743,7 +2101,6 @@ document.addEventListener('mousedown', (e) => {
 
     const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
     if (targetWolfIdx !== -1 && e.button === 0) {
-      const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
       if (selectedBlock === BLOCKS.BONE_ITEM && !wolfList[targetWolfIdx].isTamed) {
         wolfList[targetWolfIdx].tame();
         alert('🐺 成功馴服狼！狼已裝備 1.20.6 狼鎧甲 (Wolf Armor)，將護衛玩家並攻擊殭屍！');
@@ -1765,7 +2122,6 @@ document.addEventListener('mousedown', (e) => {
     if (typeKey === 'TNT') triggerTNT(vx, vy, vz);
     else hitBlock(vx, vy, vz);
   } else if (e.button === 2) {
-    const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
     if (selectedBlock === BLOCKS.BRUSH_TOOL && typeKey === 'SUSPICIOUS_SAND') {
       sounds.playBrushSound();
       spawnBlockDebris(new THREE.Vector3(vx + 0.5, vy + 0.5, vz + 0.5), 0xe0c068);
@@ -1775,7 +2131,7 @@ document.addEventListener('mousedown', (e) => {
       if (brushCount >= 3) {
         removeBlock(vx, vy, vz, false);
         addBlock(vx, vy, vz, 'DIRT');
-        spawnDroppedItem(new THREE.Vector3(vx + 0.5, vy + 0.5, vz + 0.5), 'DIAMOND');
+        spawnDroppedItem(new THREE.Vector3(vx + 0.5, vy + 0.5, vz + 0.5), 'DIAMOND', 1);
         alert('🏺 1.20.6 考古挖掘成功！發現古代陶罐與鑽石寶物！');
       }
       return;
@@ -1854,6 +2210,8 @@ function updateSelectedBlockText() {
 }
 
 initHotbarUI();
+updateHealthBar();
+updateHungerBar();
 
 const overlay = document.getElementById('overlay');
 const startBtn = document.getElementById('start-btn');
@@ -1949,7 +2307,6 @@ function checkPlayerCollision(newPos) {
 function animate() {
   requestAnimationFrame(animate);
 
-  // 靜態渲染管理器更新 (60 FPS 極速核心)
   blockRenderManager.update();
 
   if (!controls.isLocked) {
@@ -1976,6 +2333,9 @@ function animate() {
 
   // 生物與掉落物更新
   sheepList.forEach(sheep => sheep.update(delta, performance.now() / 1000));
+  pigList.forEach(pig => pig.update(delta, performance.now() / 1000));
+  cowList.forEach(cow => cow.update(delta, performance.now() / 1000));
+  chickenList.forEach(chicken => chicken.update(delta, performance.now() / 1000));
   zombieList.forEach(zombie => zombie.update(delta, camera.position, hurtPlayer));
   armadilloList.forEach(armadillo => armadillo.update(delta, performance.now() / 1000, camera.position));
   wolfList.forEach(wolf => wolf.update(delta, camera.position, zombieList));
@@ -2044,6 +2404,7 @@ function animate() {
     }
 
   } else {
+    // 生存模式物理：重力、跌落傷害、奔跑消耗與自動回血
     velocity.y -= 25.0 * delta;
 
     const moveSpeed = (isFastTime ? 10.0 : 5.5) * delta;
@@ -2059,13 +2420,54 @@ function animate() {
       if (checkPlayerCollision(camera.position)) {
         camera.position.z = oldPos.z;
       }
+
+      // 奔跑累積消耗飽食度 (連續奔跑約 25 秒扣 1 飽食度)
+      sprintRunDistance += moveSpeed;
+      if (sprintRunDistance >= 135) {
+        sprintRunDistance = 0;
+        if (playerHunger > 0) {
+          playerHunger--;
+          updateHungerBar();
+        }
+      }
+    }
+
+    // 飽食度滿 (>= 9) 且受傷時自動自然回血
+    if (playerHunger >= 9 && playerHealth < 10) {
+      healTimer += delta;
+      if (healTimer >= 3.5) {
+        healTimer = 0;
+        playerHealth = Math.min(10, playerHealth + 1);
+        updateHealthBar();
+      }
+    } else {
+      healTimer = 0;
     }
 
     camera.position.y += velocity.y * delta;
     const playerFeetY = camera.position.y - 1.6;
     const targetGroundY = getGroundHeightAtFeet(camera.position.x, playerFeetY, camera.position.z) + 1.6;
 
-    if (camera.position.y <= targetGroundY) {
+    // 跌落傷害判斷 (從 3 格高度跳下一格高扣半顆心)
+    if (camera.position.y > targetGroundY + 0.1) {
+      if (!wasInAir) {
+        wasInAir = true;
+        highestYInAir = camera.position.y;
+      } else {
+        highestYInAir = Math.max(highestYInAir, camera.position.y);
+      }
+    } else {
+      if (wasInAir) {
+        const fallDistance = highestYInAir - camera.position.y;
+        if (fallDistance >= 2.8) {
+          const damageAmount = Math.floor((fallDistance - 2.3) * 1.0);
+          if (damageAmount > 0) {
+            hurtPlayer(damageAmount);
+          }
+        }
+        wasInAir = false;
+      }
+
       velocity.y = 0;
       camera.position.y = targetGroundY;
       canJump = true;
