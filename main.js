@@ -1091,7 +1091,15 @@ class VoxelSheep {
   }
 
   update(delta, time, playerPos) {
-    if (this.group.position.distanceTo(playerPos) > 60) return;
+    const dx = this.group.position.x - playerPos.x;
+    const dz = this.group.position.z - playerPos.z;
+    const distSq = dx * dx + dz * dz;
+
+    if (distSq > 3600) {
+      this.group.visible = false;
+      return;
+    }
+    this.group.visible = true;
 
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
@@ -1101,12 +1109,13 @@ class VoxelSheep {
       this.changeDirectionTimer = 3 + Math.random() * 4;
     }
 
-    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.7);
-    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+    const nextX = this.group.position.x + this.targetDir.x * delta * 0.7;
+    const nextZ = this.group.position.z + this.targetDir.z * delta * 0.7;
+    const targetY = getGroundHeight(nextX, nextZ);
 
     if (targetY - this.group.position.y <= 1.1) {
-      this.group.position.x = nextPos.x;
-      this.group.position.z = nextPos.z;
+      this.group.position.x = nextX;
+      this.group.position.z = nextZ;
       this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
     } else {
       this.changeDirectionTimer = 0;
@@ -1179,7 +1188,15 @@ class VoxelPig {
   }
 
   update(delta, time, playerPos) {
-    if (this.group.position.distanceTo(playerPos) > 60) return;
+    const dx = this.group.position.x - playerPos.x;
+    const dz = this.group.position.z - playerPos.z;
+    const distSq = dx * dx + dz * dz;
+
+    if (distSq > 3600) {
+      this.group.visible = false;
+      return;
+    }
+    this.group.visible = true;
 
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
@@ -1189,12 +1206,13 @@ class VoxelPig {
       this.changeDirectionTimer = 3 + Math.random() * 4;
     }
 
-    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.8);
-    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+    const nextX = this.group.position.x + this.targetDir.x * delta * 0.8;
+    const nextZ = this.group.position.z + this.targetDir.z * delta * 0.8;
+    const targetY = getGroundHeight(nextX, nextZ);
 
     if (targetY - this.group.position.y <= 1.1) {
-      this.group.position.x = nextPos.x;
-      this.group.position.z = nextPos.z;
+      this.group.position.x = nextX;
+      this.group.position.z = nextZ;
       this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
     } else {
       this.changeDirectionTimer = 0;
@@ -1266,7 +1284,15 @@ class VoxelCow {
   }
 
   update(delta, time, playerPos) {
-    if (this.group.position.distanceTo(playerPos) > 60) return;
+    const dx = this.group.position.x - playerPos.x;
+    const dz = this.group.position.z - playerPos.z;
+    const distSq = dx * dx + dz * dz;
+
+    if (distSq > 3600) {
+      this.group.visible = false;
+      return;
+    }
+    this.group.visible = true;
 
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
@@ -1276,12 +1302,13 @@ class VoxelCow {
       this.changeDirectionTimer = 3 + Math.random() * 4;
     }
 
-    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.65);
-    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+    const nextX = this.group.position.x + this.targetDir.x * delta * 0.65;
+    const nextZ = this.group.position.z + this.targetDir.z * delta * 0.65;
+    const targetY = getGroundHeight(nextX, nextZ);
 
     if (targetY - this.group.position.y <= 1.1) {
-      this.group.position.x = nextPos.x;
-      this.group.position.z = nextPos.z;
+      this.group.position.x = nextX;
+      this.group.position.z = nextZ;
       this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
     } else {
       this.changeDirectionTimer = 0;
@@ -1350,7 +1377,15 @@ class VoxelChicken {
   }
 
   update(delta, time, playerPos) {
-    if (this.group.position.distanceTo(playerPos) > 60) return;
+    const dx = this.group.position.x - playerPos.x;
+    const dz = this.group.position.z - playerPos.z;
+    const distSq = dx * dx + dz * dz;
+
+    if (distSq > 3600) {
+      this.group.visible = false;
+      return;
+    }
+    this.group.visible = true;
 
     this.changeDirectionTimer -= delta;
     if (this.changeDirectionTimer <= 0) {
@@ -1360,12 +1395,13 @@ class VoxelChicken {
       this.changeDirectionTimer = 2 + Math.random() * 3;
     }
 
-    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.9);
-    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+    const nextX = this.group.position.x + this.targetDir.x * delta * 0.9;
+    const nextZ = this.group.position.z + this.targetDir.z * delta * 0.9;
+    const targetY = getGroundHeight(nextX, nextZ);
 
     if (targetY - this.group.position.y <= 1.1) {
-      this.group.position.x = nextPos.x;
-      this.group.position.z = nextPos.z;
+      this.group.position.x = nextX;
+      this.group.position.z = nextZ;
       this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
     } else {
       this.changeDirectionTimer = 0;
@@ -1572,31 +1608,41 @@ class VoxelZombie {
   update(delta, playerPos, hurtPlayerCb) {
     if (currentMode === GAME_MODES.SPECTATOR) return;
     this.attackCooldown -= delta;
-    const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
+
+    const dx = playerPos.x - this.group.position.x;
+    const dz = playerPos.z - this.group.position.z;
+    const distSq = dx * dx + dz * dz;
+
+    if (distSq > 3600) {
+      this.group.visible = false;
+      return;
+    }
+    this.group.visible = true;
 
     const heightDiff = playerPos.y - 1.6 - this.group.position.y;
-    dir.y = 0;
-    const dist = dir.length();
 
-    if (dist > 0.8 && dist < 25) {
-      dir.normalize();
+    if (distSq > 0.64 && distSq < 625) {
+      const invDist = 1.0 / Math.sqrt(distSq);
+      const dirX = dx * invDist;
+      const dirZ = dz * invDist;
 
-      const nextPos = this.group.position.clone().addScaledVector(dir, delta * 1.5);
-      const targetY = getGroundHeight(nextPos.x, nextPos.z);
+      const nextX = this.group.position.x + dirX * delta * 1.5;
+      const nextZ = this.group.position.z + dirZ * delta * 1.5;
+      const targetY = getGroundHeight(nextX, nextZ);
 
       if (targetY - this.group.position.y <= 1.1) {
-        this.group.position.x = nextPos.x;
-        this.group.position.z = nextPos.z;
+        this.group.position.x = nextX;
+        this.group.position.z = nextZ;
         this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
       }
-      this.group.rotation.y = Math.atan2(dir.x, dir.z);
+      this.group.rotation.y = Math.atan2(dirX, dirZ);
 
       const t = performance.now() / 200;
       this.legL.rotation.x = Math.sin(t) * 0.5;
       this.legR.rotation.x = -Math.sin(t) * 0.5;
     }
 
-    if (dist <= 1.3 && Math.abs(heightDiff) < 1.5 && this.attackCooldown <= 0) {
+    if (distSq <= 1.69 && Math.abs(heightDiff) < 1.5 && this.attackCooldown <= 0) {
       this.attackCooldown = 1.5;
       hurtPlayerCb(1);
     }
@@ -1658,13 +1704,21 @@ class VoxelArmadillo {
   }
 
   update(delta, time, playerPos) {
-    const distToPlayer = this.group.position.distanceTo(playerPos);
+    const dx = this.group.position.x - playerPos.x;
+    const dz = this.group.position.z - playerPos.z;
+    const distSq = dx * dx + dz * dz;
 
-    if (distToPlayer < 3.5 && !this.isRolledUp) {
+    if (distSq > 3600) {
+      this.group.visible = false;
+      return;
+    }
+    this.group.visible = true;
+
+    if (distSq < 12.25 && !this.isRolledUp) {
       this.isRolledUp = true;
       this.head.scale.set(0.1, 0.1, 0.1);
       this.body.scale.set(1.1, 1.1, 1.1);
-    } else if (distToPlayer >= 4.5 && this.isRolledUp) {
+    } else if (distSq >= 20.25 && this.isRolledUp) {
       this.isRolledUp = false;
       this.head.scale.set(1, 1, 1);
       this.body.scale.set(1, 1, 1);
@@ -1680,11 +1734,12 @@ class VoxelArmadillo {
       this.changeDirTimer = 3 + Math.random() * 4;
     }
 
-    const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.6);
-    const targetY = getGroundHeight(nextPos.x, nextPos.z);
+    const nextX = this.group.position.x + this.targetDir.x * delta * 0.6;
+    const nextZ = this.group.position.z + this.targetDir.z * delta * 0.6;
+    const targetY = getGroundHeight(nextX, nextZ);
     if (targetY - this.group.position.y <= 1.1) {
-      this.group.position.x = nextPos.x;
-      this.group.position.z = nextPos.z;
+      this.group.position.x = nextX;
+      this.group.position.z = nextZ;
       this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
     } else {
       this.changeDirTimer = 0;
@@ -1804,21 +1859,35 @@ class VoxelWolf {
 
   update(delta, playerPos, zombies, hurtPlayerCb) {
     this.attackCooldown -= delta;
+
+    const dxPlayer = playerPos.x - this.group.position.x;
+    const dzPlayer = playerPos.z - this.group.position.z;
+    const distSqPlayer = dxPlayer * dxPlayer + dzPlayer * dzPlayer;
+
+    if (!this.isTamed && !this.isAngry && distSqPlayer > 3600) {
+      this.group.visible = false;
+      return;
+    }
+    this.group.visible = true;
+
     const groundY = getGroundHeight(this.group.position.x, this.group.position.z);
 
     if (this.isTamed) {
-      // 狼鎖定主人的目標攻擊直到打死！
       if (this.attackTarget && this.attackTarget.health > 0 && this.attackTarget.group.parent === scene) {
         const targetPos = this.attackTarget.group.position;
-        const dir = new THREE.Vector3().subVectors(targetPos, this.group.position);
-        dir.y = 0;
-        const dist = dir.length();
+        const dx = targetPos.x - this.group.position.x;
+        const dz = targetPos.z - this.group.position.z;
+        const distSq = dx * dx + dz * dz;
 
-        if (dist > 1.2) {
-          dir.normalize();
-          this.group.position.addScaledVector(dir, delta * 5.5);
+        if (distSq > 1.44) {
+          const invDist = 1.0 / Math.sqrt(distSq);
+          const dirX = dx * invDist;
+          const dirZ = dz * invDist;
+
+          this.group.position.x += dirX * delta * 5.5;
+          this.group.position.z += dirZ * delta * 5.5;
           this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
-          this.group.rotation.y = Math.atan2(dir.x, dir.z);
+          this.group.rotation.y = Math.atan2(dirX, dirZ);
 
           const t = performance.now() / 90;
           this.legs.forEach((leg, idx) => {
@@ -1840,24 +1909,33 @@ class VoxelWolf {
         this.attackTarget = null;
 
         let nearestZombie = null;
-        let minDist = 18;
-        zombies.forEach(zombie => {
-          const d = this.group.position.distanceTo(zombie.group.position);
-          if (d < minDist) {
-            minDist = d;
+        let minDistSq = 324;
+        for (let i = 0; i < zombies.length; i++) {
+          const zombie = zombies[i];
+          if (!zombie.group.visible) continue;
+          const zdx = zombie.group.position.x - this.group.position.x;
+          const zdz = zombie.group.position.z - this.group.position.z;
+          const zDistSq = zdx * zdx + zdz * zdz;
+          if (zDistSq < minDistSq) {
+            minDistSq = zDistSq;
             nearestZombie = zombie;
           }
-        });
+        }
 
         if (nearestZombie) {
-          const dir = new THREE.Vector3().subVectors(nearestZombie.group.position, this.group.position);
-          dir.y = 0;
-          const dist = dir.length();
-          if (dist > 1.0) {
-            dir.normalize();
-            this.group.position.addScaledVector(dir, delta * 4.5);
+          const zdx = nearestZombie.group.position.x - this.group.position.x;
+          const zdz = nearestZombie.group.position.z - this.group.position.z;
+          const zDistSq = zdx * zdx + zdz * zdz;
+
+          if (zDistSq > 1.0) {
+            const invDist = 1.0 / Math.sqrt(zDistSq);
+            const dirX = zdx * invDist;
+            const dirZ = zdz * invDist;
+
+            this.group.position.x += dirX * delta * 4.5;
+            this.group.position.z += dirZ * delta * 4.5;
             this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
-            this.group.rotation.y = Math.atan2(dir.x, dir.z);
+            this.group.rotation.y = Math.atan2(dirX, dirZ);
 
             const t = performance.now() / 110;
             this.legs.forEach((leg, idx) => {
@@ -1873,19 +1951,20 @@ class VoxelWolf {
             }
           }
         } else {
-          // 跟隨玩家 (貼地行走)
-          const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
-          dir.y = 0;
-          const dist = dir.length();
-          if (dist > 25.0) {
+          const distSq = distSqPlayer;
+          if (distSq > 625.0) {
             const tpGround = getGroundHeight(playerPos.x + 1.5, playerPos.z + 1.5);
             this.group.position.set(playerPos.x + 1.5, tpGround, playerPos.z + 1.5);
-          } else if (dist > 2.2) {
-            dir.normalize();
-            const speed = dist > 7.0 ? 5.5 : 3.2;
-            this.group.position.addScaledVector(dir, delta * speed);
+          } else if (distSq > 4.84) {
+            const invDist = 1.0 / Math.sqrt(distSq);
+            const dirX = dxPlayer * invDist;
+            const dirZ = dzPlayer * invDist;
+            const speed = distSq > 49.0 ? 5.5 : 3.2;
+
+            this.group.position.x += dirX * delta * speed;
+            this.group.position.z += dirZ * delta * speed;
             this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
-            this.group.rotation.y = Math.atan2(dir.x, dir.z);
+            this.group.rotation.y = Math.atan2(dirX, dirZ);
 
             const t = performance.now() / 130;
             this.legs.forEach((leg, idx) => {
@@ -1898,15 +1977,17 @@ class VoxelWolf {
         }
       }
     } else if (this.isAngry) {
-      const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
-      dir.y = 0;
-      const dist = dir.length();
+      const distSq = distSqPlayer;
 
-      if (dist > 0.8 && dist < 30) {
-        dir.normalize();
-        this.group.position.addScaledVector(dir, delta * 3.2);
+      if (distSq > 0.64 && distSq < 900) {
+        const invDist = 1.0 / Math.sqrt(distSq);
+        const dirX = dxPlayer * invDist;
+        const dirZ = dzPlayer * invDist;
+
+        this.group.position.x += dirX * delta * 3.2;
+        this.group.position.z += dirZ * delta * 3.2;
         this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
-        this.group.rotation.y = Math.atan2(dir.x, dir.z);
+        this.group.rotation.y = Math.atan2(dirX, dirZ);
 
         const t = performance.now() / 110;
         this.legs.forEach((leg, idx) => {
@@ -1914,14 +1995,12 @@ class VoxelWolf {
         });
       }
 
-      if (dist <= 1.3 && this.attackCooldown <= 0) {
+      if (distSq <= 1.69 && this.attackCooldown <= 0) {
         this.attackCooldown = 1.0;
         sounds.playHitZombie();
         hurtPlayerCb(2);
       }
     } else {
-      if (this.group.position.distanceTo(playerPos) > 80) return;
-
       this.changeDirTimer -= delta;
       if (this.changeDirTimer <= 0) {
         const angle = Math.random() * Math.PI * 2;
@@ -1930,11 +2009,12 @@ class VoxelWolf {
         this.changeDirTimer = 3 + Math.random() * 4;
       }
 
-      const nextPos = this.group.position.clone().addScaledVector(this.targetDir, delta * 0.8);
-      const targetY = getGroundHeight(nextPos.x, nextPos.z);
+      const nextX = this.group.position.x + this.targetDir.x * delta * 0.8;
+      const nextZ = this.group.position.z + this.targetDir.z * delta * 0.8;
+      const targetY = getGroundHeight(nextX, nextZ);
       if (targetY - this.group.position.y <= 1.1) {
-        this.group.position.x = nextPos.x;
-        this.group.position.z = nextPos.z;
+        this.group.position.x = nextX;
+        this.group.position.z = nextZ;
         this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
       } else {
         this.changeDirTimer = 0;
@@ -2055,47 +2135,47 @@ const wolfList = [];
 let mountedHorse = null;
 let horseVelocityY = 0;
 
-// 生物生成：羊 1500隻、豬 1200隻、牛 800隻、雞 800隻、馬 500隻、狼 400隻 (共 5450+ 隻萬獸奔騰)
+// 生物生成：羊 350隻、豬 300隻、牛 250隻、雞 250隻、馬 150隻、狼 100隻、殭屍 60隻、犰狳 40隻 (共 1500隻 精密動態載入，穩動 60 FPS)
 function spawnInitialMobs() {
   const spawnWidth = 1100;
-  for (let i = 0; i < 1500; i++) {
+  for (let i = 0; i < 350; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     sheepList.push(new VoxelSheep(rx, rz));
   }
-  for (let i = 0; i < 1200; i++) {
+  for (let i = 0; i < 300; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     pigList.push(new VoxelPig(rx, rz));
   }
-  for (let i = 0; i < 800; i++) {
+  for (let i = 0; i < 250; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     cowList.push(new VoxelCow(rx, rz));
   }
-  for (let i = 0; i < 800; i++) {
+  for (let i = 0; i < 250; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     chickenList.push(new VoxelChicken(rx, rz));
   }
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < 150; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     horseList.push(new VoxelHorse(rx, rz));
   }
-  for (let i = 0; i < 400; i++) {
+  for (let i = 0; i < 100; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     wolfList.push(new VoxelWolf(rx, rz));
   }
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 60; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     if (Math.abs(rx) > 15 || Math.abs(rz) > 15) {
       zombieList.push(new VoxelZombie(rx, rz));
     }
   }
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 40; i++) {
     const rx = (Math.random() - 0.5) * spawnWidth;
     const rz = (Math.random() - 0.5) * spawnWidth;
     armadilloList.push(new VoxelArmadillo(rx, rz));
