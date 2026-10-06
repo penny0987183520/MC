@@ -555,9 +555,9 @@ const scene = new THREE.Scene();
 const skyColorDay = new THREE.Color(0x7ec0ee);
 const skyColorNight = new THREE.Color(0x0a0e1a);
 scene.background = skyColorDay.clone();
-scene.fog = new THREE.FogExp2(0x7ec0ee, 0.007);
+scene.fog = new THREE.FogExp2(0x7ec0ee, 0.002);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1760,8 +1760,15 @@ class VoxelWolf {
     this.isTamed = false;
     this.isAngry = false;
     this.attackCooldown = 0;
+    this.attackTarget = null;
     this.targetDir = new THREE.Vector3();
     this.changeDirTimer = 0;
+  }
+
+  setAttackTarget(mob) {
+    if (this.isTamed && mob && mob !== this) {
+      this.attackTarget = mob;
+    }
   }
 
   hit() {
@@ -1786,6 +1793,7 @@ class VoxelWolf {
   tame() {
     this.isTamed = true;
     this.isAngry = false;
+    this.attackTarget = null;
     this.eyeL.material = this.eyeNormalMat;
     this.eyeR.material = this.eyeNormalMat;
     this.collar.visible = true;
@@ -1795,47 +1803,98 @@ class VoxelWolf {
   }
 
   update(delta, playerPos, zombies, hurtPlayerCb) {
-    if (this.group.position.distanceTo(playerPos) > 60 && !this.isTamed && !this.isAngry) return;
-
     this.attackCooldown -= delta;
+    const groundY = getGroundHeight(this.group.position.x, this.group.position.z);
 
     if (this.isTamed) {
-      let nearestZombie = null;
-      let minDist = 15;
-      zombies.forEach(zombie => {
-        const d = this.group.position.distanceTo(zombie.group.position);
-        if (d < minDist) {
-          minDist = d;
-          nearestZombie = zombie;
-        }
-      });
-
-      if (nearestZombie) {
-        const dir = new THREE.Vector3().subVectors(nearestZombie.group.position, this.group.position);
+      // 狼鎖定主人的目標攻擊直到打死！
+      if (this.attackTarget && this.attackTarget.health > 0 && this.attackTarget.group.parent === scene) {
+        const targetPos = this.attackTarget.group.position;
+        const dir = new THREE.Vector3().subVectors(targetPos, this.group.position);
         dir.y = 0;
         const dist = dir.length();
-        if (dist > 1.0) {
+
+        if (dist > 1.2) {
           dir.normalize();
-          this.group.position.addScaledVector(dir, delta * 3.5);
+          this.group.position.addScaledVector(dir, delta * 5.5);
+          this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
           this.group.rotation.y = Math.atan2(dir.x, dir.z);
-        } else if (this.attackCooldown <= 0) {
-          this.attackCooldown = 1.0;
-          sounds.playHitZombie();
-          const isDead = nearestZombie.hit();
-          if (isDead) {
-            const idx = zombies.indexOf(nearestZombie);
-            if (idx !== -1) zombies.splice(idx, 1);
+
+          const t = performance.now() / 90;
+          this.legs.forEach((leg, idx) => {
+            leg.rotation.x = Math.sin(t + idx * Math.PI) * 0.6;
+          });
+        } else {
+          this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
+          if (this.attackCooldown <= 0) {
+            this.attackCooldown = 0.6;
+            sounds.playHitZombie();
+            const isDead = this.attackTarget.hit();
+            if (isDead) {
+              removeMobFromArray(this.attackTarget);
+              this.attackTarget = null;
+            }
           }
         }
       } else {
-        const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
-        dir.y = 0;
-        const dist = dir.length();
-        if (dist > 2.0) {
-          dir.normalize();
-          const speed = dist > 6.0 ? 5.5 : 3.0;
-          this.group.position.addScaledVector(dir, delta * speed);
-          this.group.rotation.y = Math.atan2(dir.x, dir.z);
+        this.attackTarget = null;
+
+        let nearestZombie = null;
+        let minDist = 18;
+        zombies.forEach(zombie => {
+          const d = this.group.position.distanceTo(zombie.group.position);
+          if (d < minDist) {
+            minDist = d;
+            nearestZombie = zombie;
+          }
+        });
+
+        if (nearestZombie) {
+          const dir = new THREE.Vector3().subVectors(nearestZombie.group.position, this.group.position);
+          dir.y = 0;
+          const dist = dir.length();
+          if (dist > 1.0) {
+            dir.normalize();
+            this.group.position.addScaledVector(dir, delta * 4.5);
+            this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
+            this.group.rotation.y = Math.atan2(dir.x, dir.z);
+
+            const t = performance.now() / 110;
+            this.legs.forEach((leg, idx) => {
+              leg.rotation.x = Math.sin(t + idx * Math.PI) * 0.5;
+            });
+          } else if (this.attackCooldown <= 0) {
+            this.attackCooldown = 0.8;
+            sounds.playHitZombie();
+            const isDead = nearestZombie.hit();
+            if (isDead) {
+              const idx = zombies.indexOf(nearestZombie);
+              if (idx !== -1) zombies.splice(idx, 1);
+            }
+          }
+        } else {
+          // 跟隨玩家 (貼地行走)
+          const dir = new THREE.Vector3().subVectors(playerPos, this.group.position);
+          dir.y = 0;
+          const dist = dir.length();
+          if (dist > 25.0) {
+            const tpGround = getGroundHeight(playerPos.x + 1.5, playerPos.z + 1.5);
+            this.group.position.set(playerPos.x + 1.5, tpGround, playerPos.z + 1.5);
+          } else if (dist > 2.2) {
+            dir.normalize();
+            const speed = dist > 7.0 ? 5.5 : 3.2;
+            this.group.position.addScaledVector(dir, delta * speed);
+            this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
+            this.group.rotation.y = Math.atan2(dir.x, dir.z);
+
+            const t = performance.now() / 130;
+            this.legs.forEach((leg, idx) => {
+              leg.rotation.x = Math.sin(t + idx * Math.PI) * 0.4;
+            });
+          } else {
+            this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
+            this.legs.forEach(leg => leg.rotation.x = 0);
+          }
         }
       }
     } else if (this.isAngry) {
@@ -1843,24 +1902,26 @@ class VoxelWolf {
       dir.y = 0;
       const dist = dir.length();
 
-      if (dist > 0.8 && dist < 25) {
+      if (dist > 0.8 && dist < 30) {
         dir.normalize();
-        const nextPos = this.group.position.clone().addScaledVector(dir, delta * 2.8);
-        const targetY = getGroundHeight(nextPos.x, nextPos.z);
-        if (targetY - this.group.position.y <= 1.1) {
-          this.group.position.x = nextPos.x;
-          this.group.position.z = nextPos.z;
-          this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, targetY, 0.25);
-        }
+        this.group.position.addScaledVector(dir, delta * 3.2);
+        this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, groundY, 0.3);
         this.group.rotation.y = Math.atan2(dir.x, dir.z);
+
+        const t = performance.now() / 110;
+        this.legs.forEach((leg, idx) => {
+          leg.rotation.x = Math.sin(t + idx * Math.PI) * 0.5;
+        });
       }
 
       if (dist <= 1.3 && this.attackCooldown <= 0) {
-        this.attackCooldown = 1.2;
+        this.attackCooldown = 1.0;
         sounds.playHitZombie();
         hurtPlayerCb(2);
       }
     } else {
+      if (this.group.position.distanceTo(playerPos) > 80) return;
+
       this.changeDirTimer -= delta;
       if (this.changeDirTimer <= 0) {
         const angle = Math.random() * Math.PI * 2;
@@ -1878,23 +1939,52 @@ class VoxelWolf {
       } else {
         this.changeDirTimer = 0;
       }
+      const t = performance.now() / 160;
+      this.legs.forEach((leg, idx) => {
+        leg.rotation.x = Math.sin(t + idx) * 0.3;
+      });
     }
-
-    const t = performance.now() / 150;
-    this.legs.forEach((leg, idx) => {
-      leg.rotation.x = Math.sin(t + idx) * 0.4;
-    });
   }
 }
 
-// 360x360 1.20.6 世界地圖
+// 輔助函式：從列表中移除死亡生物
+function removeMobFromArray(mobObj) {
+  if (!mobObj) return;
+  let idx = pigList.indexOf(mobObj);
+  if (idx !== -1) { pigList.splice(idx, 1); return; }
+  idx = sheepList.indexOf(mobObj);
+  if (idx !== -1) { sheepList.splice(idx, 1); return; }
+  idx = cowList.indexOf(mobObj);
+  if (idx !== -1) { cowList.splice(idx, 1); return; }
+  idx = chickenList.indexOf(mobObj);
+  if (idx !== -1) { chickenList.splice(idx, 1); return; }
+  idx = zombieList.indexOf(mobObj);
+  if (idx !== -1) { zombieList.splice(idx, 1); return; }
+  idx = horseList.indexOf(mobObj);
+  if (idx !== -1) { horseList.splice(idx, 1); return; }
+  idx = armadilloList.indexOf(mobObj);
+  if (idx !== -1) { armadilloList.splice(idx, 1); return; }
+  idx = wolfList.indexOf(mobObj);
+  if (idx !== -1) { wolfList.splice(idx, 1); return; }
+}
+
+// 輔助函式：通知所有馴服狼圍剿攻擊目標
+function notifyTamedWolvesAttack(targetMob) {
+  if (!targetMob) return;
+  wolfList.forEach(w => {
+    if (w.isTamed && w !== targetMob) {
+      w.setAttackTarget(targetMob);
+    }
+  });
+}
+// 1140x1140 1.20.6 擴大 10 倍巨幅世界地圖
 function generateInitialWorld() {
-  const WORLD_SIZE = 360;
+  const WORLD_SIZE = 1140;
   const HALF_SIZE = WORLD_SIZE / 2;
 
   for (let x = -HALF_SIZE; x < HALF_SIZE; x++) {
     for (let z = -HALF_SIZE; z < HALF_SIZE; z++) {
-      const height = Math.floor(Math.sin(x * 0.12) * Math.cos(z * 0.12) * 2.5) + 3;
+      const height = Math.floor(Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.5) + 3;
       for (let y = 0; y < height; y++) {
         if (y === 0) addBlock(x, y, z, 'STONE', false);
         else addBlock(x, y, z, 'DIRT', false);
@@ -1902,14 +1992,14 @@ function generateInitialWorld() {
 
       if (x > 0 && z > 0) {
         addBlock(x, height, z, 'GRASS', false);
-        if (Math.random() < 0.035 && Math.abs(x) > 3) {
+        if (Math.random() < 0.015 && Math.abs(x) > 3) {
           generateCherryTree(x, height + 1, z);
         }
-      } else if (x < -10 && z < -10) {
+      } else if (x < -20 && z < -20) {
         addBlock(x, height, z, Math.random() < 0.3 ? 'SUSPICIOUS_SAND' : 'DIRT', false);
       } else {
         addBlock(x, height, z, 'GRASS', false);
-        if (Math.random() < 0.015 && Math.abs(x) > 3) {
+        if (Math.random() < 0.010 && Math.abs(x) > 3) {
           generateTree(x, height + 1, z);
         }
       }
@@ -1965,48 +2055,49 @@ const wolfList = [];
 let mountedHorse = null;
 let horseVelocityY = 0;
 
-// 生物生成：羊 500隻、豬 400隻、牛 200隻、雞 200隻、馬 150隻、狼 100隻
+// 生物生成：羊 1500隻、豬 1200隻、牛 800隻、雞 800隻、馬 500隻、狼 400隻 (共 5450+ 隻萬獸奔騰)
 function spawnInitialMobs() {
-  for (let i = 0; i < 500; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  const spawnWidth = 1100;
+  for (let i = 0; i < 1500; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     sheepList.push(new VoxelSheep(rx, rz));
   }
-  for (let i = 0; i < 400; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  for (let i = 0; i < 1200; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     pigList.push(new VoxelPig(rx, rz));
   }
-  for (let i = 0; i < 200; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  for (let i = 0; i < 800; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     cowList.push(new VoxelCow(rx, rz));
   }
-  for (let i = 0; i < 200; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  for (let i = 0; i < 800; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     chickenList.push(new VoxelChicken(rx, rz));
   }
-  for (let i = 0; i < 150; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  for (let i = 0; i < 500; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     horseList.push(new VoxelHorse(rx, rz));
   }
-  for (let i = 0; i < 100; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  for (let i = 0; i < 400; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     wolfList.push(new VoxelWolf(rx, rz));
   }
-  for (let i = 0; i < 40; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  for (let i = 0; i < 150; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     if (Math.abs(rx) > 15 || Math.abs(rz) > 15) {
       zombieList.push(new VoxelZombie(rx, rz));
     }
   }
-  for (let i = 0; i < 30; i++) {
-    const rx = (Math.random() - 0.5) * 320;
-    const rz = (Math.random() - 0.5) * 320;
+  for (let i = 0; i < 100; i++) {
+    const rx = (Math.random() - 0.5) * spawnWidth;
+    const rz = (Math.random() - 0.5) * spawnWidth;
     armadilloList.push(new VoxelArmadillo(rx, rz));
   }
 }
@@ -2310,6 +2401,15 @@ document.addEventListener('mousedown', (e) => {
 
   swingArm();
 
+  // 若已騎馬，按右鍵 dismount 下馬
+  if (mountedHorse && e.button === 2) {
+    mountedHorse.isRidden = false;
+    mountedHorse = null;
+    sounds.playJump();
+    alert('🏇 已下馬 (Dismounted)');
+    return;
+  }
+
   const selectedBlock = HOTBAR_BLOCKS[selectedBlockIndex];
 
   if (selectedBlock && selectedBlock.isFood) {
@@ -2326,77 +2426,125 @@ document.addEventListener('mousedown', (e) => {
       parentObj = parentObj.parent;
     }
 
-    // 點擊馬鞍馬匹騎乘！
+    // 點擊馬匹：右鍵上馬/下馬，左鍵攻擊打馬
     const targetHorseIdx = horseList.findIndex(h => h.group === parentObj);
     if (targetHorseIdx !== -1) {
       const targetHorse = horseList[targetHorseIdx];
-      if (mountedHorse === targetHorse) {
-        mountedHorse.isRidden = false;
-        mountedHorse = null;
-        alert('🏇 已下馬 (Dismounted)');
-      } else {
-        if (mountedHorse) mountedHorse.isRidden = false;
-        mountedHorse = targetHorse;
-        mountedHorse.isRidden = true;
-        sounds.playJump();
-        alert('🏇 成功騎上駿馬！使用 WASD 快速奔馳，按 Shift 或 Backspace 可下馬。');
+      if (e.button === 2) {
+        if (mountedHorse === targetHorse) {
+          mountedHorse.isRidden = false;
+          mountedHorse = null;
+          sounds.playJump();
+          alert('🏇 已下馬 (Dismounted)');
+        } else {
+          if (mountedHorse) mountedHorse.isRidden = false;
+          mountedHorse = targetHorse;
+          mountedHorse.isRidden = true;
+          sounds.playJump();
+          alert('🏇 成功騎上駿馬！使用 WASD 快速奔馳，按 Shift 或 Backspace 可下馬，再按右鍵也可下馬。');
+        }
+        return;
+      } else if (e.button === 0) {
+        const isDead = targetHorse.hit();
+        if (isDead) {
+          if (mountedHorse === targetHorse) mountedHorse = null;
+          horseList.splice(targetHorseIdx, 1);
+        } else {
+          notifyTamedWolvesAttack(targetHorse);
+        }
+        return;
       }
-      return;
     }
 
+    // 點擊狼：骨頭或右鍵餵食馴服，左鍵打狼
     const targetWolfIdx = wolfList.findIndex(w => w.group === parentObj);
     if (targetWolfIdx !== -1) {
-      if (selectedBlock === BLOCKS.BONE_ITEM && !wolfList[targetWolfIdx].isTamed) {
-        wolfList[targetWolfIdx].tame();
-        alert('🐺 成功拿骨頭餵食並馴服狼！狼會冒出愛心 ❤️ 並忠實跟隨護衛玩家！');
+      const targetWolf = wolfList[targetWolfIdx];
+      if ((selectedBlock === BLOCKS.BONE_ITEM || e.button === 2) && !targetWolf.isTamed) {
+        targetWolf.tame();
+        alert('🐺 成功拿骨頭餵食並馴服狼！狼會冒出愛心 ❤️ 貼地跟隨並為你圍剿打死目標！');
         return;
       }
       if (e.button === 0) {
-        const isDead = wolfList[targetWolfIdx].hit();
-        if (isDead) wolfList.splice(targetWolfIdx, 1);
+        const isDead = targetWolf.hit();
+        if (isDead) {
+          wolfList.splice(targetWolfIdx, 1);
+        } else {
+          notifyTamedWolvesAttack(targetWolf);
+        }
         return;
       }
     }
 
     const targetZombieIdx = zombieList.findIndex(z => z.group === parentObj);
     if (targetZombieIdx !== -1 && e.button === 0) {
-      const isDead = zombieList[targetZombieIdx].hit();
-      if (isDead) zombieList.splice(targetZombieIdx, 1);
+      const targetZombie = zombieList[targetZombieIdx];
+      const isDead = targetZombie.hit();
+      if (isDead) {
+        zombieList.splice(targetZombieIdx, 1);
+      } else {
+        notifyTamedWolvesAttack(targetZombie);
+      }
       return;
     }
 
     const targetSheepIdx = sheepList.findIndex(s => s.group === parentObj);
     if (targetSheepIdx !== -1 && e.button === 0) {
-      const isDead = sheepList[targetSheepIdx].hit();
-      if (isDead) sheepList.splice(targetSheepIdx, 1);
+      const targetSheep = sheepList[targetSheepIdx];
+      const isDead = targetSheep.hit();
+      if (isDead) {
+        sheepList.splice(targetSheepIdx, 1);
+      } else {
+        notifyTamedWolvesAttack(targetSheep);
+      }
       return;
     }
 
     const targetPigIdx = pigList.findIndex(p => p.group === parentObj);
     if (targetPigIdx !== -1 && e.button === 0) {
-      const isDead = pigList[targetPigIdx].hit();
-      if (isDead) pigList.splice(targetPigIdx, 1);
+      const targetPig = pigList[targetPigIdx];
+      const isDead = targetPig.hit();
+      if (isDead) {
+        pigList.splice(targetPigIdx, 1);
+      } else {
+        notifyTamedWolvesAttack(targetPig);
+      }
       return;
     }
 
     const targetCowIdx = cowList.findIndex(c => c.group === parentObj);
     if (targetCowIdx !== -1 && e.button === 0) {
-      const isDead = cowList[targetCowIdx].hit();
-      if (isDead) cowList.splice(targetCowIdx, 1);
+      const targetCow = cowList[targetCowIdx];
+      const isDead = targetCow.hit();
+      if (isDead) {
+        cowList.splice(targetCowIdx, 1);
+      } else {
+        notifyTamedWolvesAttack(targetCow);
+      }
       return;
     }
 
     const targetChickenIdx = chickenList.findIndex(ch => ch.group === parentObj);
     if (targetChickenIdx !== -1 && e.button === 0) {
-      const isDead = chickenList[targetChickenIdx].hit();
-      if (isDead) chickenList.splice(targetChickenIdx, 1);
+      const targetChicken = chickenList[targetChickenIdx];
+      const isDead = targetChicken.hit();
+      if (isDead) {
+        chickenList.splice(targetChickenIdx, 1);
+      } else {
+        notifyTamedWolvesAttack(targetChicken);
+      }
       return;
     }
 
     const targetArmadilloIdx = armadilloList.findIndex(a => a.group === parentObj);
     if (targetArmadilloIdx !== -1 && e.button === 0) {
-      const isDead = armadilloList[targetArmadilloIdx].hit();
-      if (isDead) armadilloList.splice(targetArmadilloIdx, 1);
+      const targetArmadillo = armadilloList[targetArmadilloIdx];
+      const isDead = targetArmadillo.hit();
+      if (isDead) {
+        armadilloList.splice(targetArmadilloIdx, 1);
+      } else {
+        notifyTamedWolvesAttack(targetArmadillo);
+      }
       return;
     }
   }
